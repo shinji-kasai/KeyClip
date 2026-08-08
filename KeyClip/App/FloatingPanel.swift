@@ -34,4 +34,12 @@ final class FloatingPanel: NSPanel {
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+
+    /// Auto-hide when focus moves elsewhere (another app, the desktop, or the
+    /// menu bar) — the panel is the app's only window, so losing key status
+    /// always means the user clicked outside it.
+    override func resignKey() {
+        super.resignKey()
+        orderOut(nil)
+    }
 }
