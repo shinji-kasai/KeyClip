@@ -213,8 +213,18 @@ but empty/greyed-out.
 - [x] Click-to-copy via the same `copyToClipboard` pasteboard mechanism as
       Clipboard/Snippets, hover highlighting, right-click to favorite
 
-### Milestone 4 — Developer (not started)
-- [ ] Brackets/operators/SQL/Python/JS keyword palette, click-to-insert
+### Milestone 4 — Developer ✅
+- [x] Built-in token catalog (`DeveloperCatalog.swift`) grouped into
+      categories (Brackets, Operators, SQL, Python, JavaScript) — reference
+      data, no persistence needed (no favorites/recently-used for this tab,
+      unlike Symbols — not called for in the original spec)
+- [x] Collapsible categories (same chevron-toggle pattern as Symbols)
+- [x] New `FlowLayout` (`Features/Shared/FlowLayout.swift`) wraps
+      variable-width token chips onto new rows — chosen over `LazyVGrid`
+      because tokens vary a lot in length ("if" vs. "GROUP BY") and a fixed
+      grid would waste space or clip long tokens
+- [x] Click-to-copy via the same `copyToClipboard` mechanism, hover
+      highlighting on each chip
 
 ### Milestone 5 — Keyboard + Japanese width conversion (not started)
 - [ ] On-screen virtual keyboard UI (configurable layout)

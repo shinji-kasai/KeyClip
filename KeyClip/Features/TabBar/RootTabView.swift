@@ -81,7 +81,7 @@ struct RootTabView: View {
         case .settings: SettingsView()
         case .snippets: SnippetsView()
         case .symbols: SymbolsView()
-        case .developer: PlaceholderView(tab: .developer)
+        case .developer: DeveloperView()
         case .keyboard: PlaceholderView(tab: .keyboard)
         }
     }
