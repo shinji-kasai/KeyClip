@@ -29,3 +29,7 @@ Icon?
 !default.mode2v3
 *.perspectivev3
 !default.perspectivev3
+
+# Private working notes (public-facing overview lives in README.md instead)
+CLAUDE.md
+SESSION_NOTES.md
