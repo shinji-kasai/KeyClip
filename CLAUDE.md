@@ -203,14 +203,29 @@ GitHub Release with the zip attached. First release (`v1.0.0`) was built
 manually the same way before this workflow existed —
 https://github.com/shinji-kasai/KeyClip/releases/tag/v1.0.0.
 
-**Unverified risk**: this project's toolchain (`MACOSX_DEPLOYMENT_TARGET =
-26.5`, `CreatedOnToolsVersion = 26.6` in `project.pbxproj`) is far newer than
-any Xcode/SDK version confirmed available on GitHub-hosted `macos-15`
-runners as of this workflow's creation — it has not been test-run. If the
-build step fails with an SDK-not-found-style error, check
-`actions/runner-images` for which Xcode versions `macos-15` currently ships,
-and either pin a `runs-on`/`xcode-select` combination that has a matching
-SDK, or lower `MACOSX_DEPLOYMENT_TARGET` to something the runner supports.
+**Verified working** end-to-end against a real tag push (`v1.0.1`,
+https://github.com/shinji-kasai/KeyClip/releases/tag/v1.0.1) —
+`macos-15`'s preinstalled Xcode handled `MACOSX_DEPLOYMENT_TARGET = 26.5`
+fine despite that number looking implausibly far ahead; the SDK-availability
+risk flagged when this workflow was first written did not materialize.
+
+What *did* break on the first CI run, and is worth remembering: a genuine
+Swift concurrency inconsistency between this sandbox's SDK and the CI
+runner's. `AppDelegate.applicationDidFinishLaunching` referenced
+`modelContainer.mainContext` (a `@MainActor`-isolated SwiftData property)
+and compiled fine locally, but CI failed with "main actor-isolated property
+'mainContext' can not be referenced from a nonisolated context." This
+sandbox's SDK is a pre-release/beta toolchain (`CreatedOnToolsVersion =
+26.6`) evidently ahead of GitHub's runner on how aggressively it infers
+`@MainActor` isolation for `NSApplicationDelegate` protocol requirements —
+CI's older SDK didn't infer it, this sandbox's does. Fixed by explicitly
+marking `AppDelegate` `@MainActor` rather than relying on that inference
+(also just factually correct — AppKit always invokes delegate callbacks on
+the main thread). **Lesson: a clean local build on this sandbox's toolchain
+is not proof a change will build on CI/other machines with more
+conventional Xcode versions** — prefer explicit actor isolation over
+relying on protocol-conformance inference for anything that must build
+portably.
 
 ## Verifying changes
 
