@@ -103,7 +103,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func togglePanel() {
         guard let panel else { return }
         if panel.isVisible {
-            panel.orderOut(nil)
+            panel.hideUnlessPresentingSheet()
         } else {
             previouslyFrontmostApp = NSWorkspace.shared.frontmostApplication
             positionPanelNearStatusItem(panel)
@@ -113,7 +113,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func injectAndHide(_ text: String) {
         let target = previouslyFrontmostApp
-        panel?.orderOut(nil)
+        panel?.hideUnlessPresentingSheet()
         TextInjector.inject(text, into: target)
     }
 
@@ -125,7 +125,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
         let target = previouslyFrontmostApp
-        panel?.orderOut(nil)
+        panel?.hideUnlessPresentingSheet()
         target?.activate(options: [])
     }
 

@@ -42,9 +42,22 @@ final class FloatingPanel: NSPanel {
 
     /// Auto-hide when focus moves elsewhere (another app, the desktop, or the
     /// menu bar) — the panel is the app's only window, so losing key status
-    /// always means the user clicked outside it.
+    /// normally means the user clicked outside it. The exception is a
+    /// SwiftUI `.sheet()` (e.g. the Snippets add/edit sheet): that's a child
+    /// window of this panel becoming key, not a click outside, so hiding here
+    /// would rip the panel out from under its own sheet and corrupt the
+    /// modal session (symptom: a grayed-out, unresponsive panel next time
+    /// it's shown).
     override func resignKey() {
         super.resignKey()
+        hideUnlessPresentingSheet()
+    }
+
+    /// Used for every path that hides the whole panel (auto-hide, toggling
+    /// off, hiding after a copy/inject) so none of them can hide out from
+    /// under an open sheet.
+    func hideUnlessPresentingSheet() {
+        guard sheets.isEmpty else { return }
         orderOut(nil)
     }
 }
