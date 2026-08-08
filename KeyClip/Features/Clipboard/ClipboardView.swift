@@ -7,7 +7,7 @@ import SwiftUI
 import SwiftData
 
 struct ClipboardView: View {
-    @Environment(\.injectText) private var injectText
+    @Environment(\.copyToClipboard) private var copyToClipboard
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \ClipboardItem.createdAt, order: .reverse) private var items: [ClipboardItem]
     @State private var searchText = ""
@@ -97,7 +97,7 @@ struct ClipboardView: View {
 
     private func select(_ item: ClipboardItem) {
         item.useCount += 1
-        injectText(item.content)
+        copyToClipboard(item.content)
     }
 
     private func togglePin(_ item: ClipboardItem) {

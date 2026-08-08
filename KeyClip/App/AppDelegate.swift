@@ -50,9 +50,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setupPanel() {
-        panel = FloatingPanel(modelContainer: modelContainer, inject: { [weak self] text in
-            self?.injectAndHide(text)
-        })
+        panel = FloatingPanel(
+            modelContainer: modelContainer,
+            inject: { [weak self] text in
+                self?.injectAndHide(text)
+            },
+            copyToClipboard: { [weak self] text in
+                self?.copyAndHide(text)
+            }
+        )
     }
 
     private func setupClipboardMonitor() {
@@ -66,7 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.togglePanel()
         }
         let stored = UserDefaults.standard.string(forKey: HotKeyBinding.openPanelDefaultsKey)
-        let binding = stored.flatMap(HotKeyBinding.init(rawValue:)) ?? .defaultOpenPanel
+        let binding = stored.flatMap { HotKeyBinding(rawValue: $0) } ?? .defaultOpenPanel
         HotKeyManager.shared.updateBinding(binding)
     }
 
@@ -108,6 +114,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let target = previouslyFrontmostApp
         panel?.orderOut(nil)
         TextInjector.inject(text, into: target)
+    }
+
+    /// Puts `text` on the system pasteboard and hands focus back to whatever
+    /// app was frontmost before the panel opened, so the user just presses
+    /// ⌘V — no Accessibility permission needed, and it's far more reliable
+    /// than typing long/unicode-heavy text out via simulated keystrokes.
+    private func copyAndHide(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        let target = previouslyFrontmostApp
+        panel?.orderOut(nil)
+        target?.activate(options: [])
     }
 
     private func positionPanelNearStatusItem(_ panel: NSPanel) {

@@ -10,7 +10,11 @@ import SwiftData
 /// A borderless, non-activating panel that overlays the frontmost app without
 /// stealing its activation (mirrors Spotlight/Raycast-style summon panels).
 final class FloatingPanel: NSPanel {
-    convenience init(modelContainer: ModelContainer, inject: @escaping (String) -> Void) {
+    convenience init(
+        modelContainer: ModelContainer,
+        inject: @escaping (String) -> Void,
+        copyToClipboard: @escaping (String) -> Void
+    ) {
         self.init(
             contentRect: NSRect(x: 0, y: 0, width: 480, height: 600),
             styleMask: [.nonactivatingPanel, .titled, .fullSizeContentView, .closable],
@@ -29,6 +33,7 @@ final class FloatingPanel: NSPanel {
         let rootView = RootTabView()
             .modelContainer(modelContainer)
             .environment(\.injectText, inject)
+            .environment(\.copyToClipboard, copyToClipboard)
         contentView = NSHostingView(rootView: rootView)
     }
 
