@@ -72,14 +72,9 @@ struct ClipboardView: View {
 
     private func row(for item: ClipboardItem) -> some View {
         HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.content)
-                    .lineLimit(2)
-                    .truncationMode(.tail)
-                Text(item.createdAt, style: .relative)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            Text(item.content)
+                .lineLimit(2)
+                .truncationMode(.tail)
             Spacer()
             Button {
                 toggleFavorite(item)
