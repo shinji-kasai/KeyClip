@@ -12,10 +12,10 @@ enum FeatureTab: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .clipboard: return "Clipboard"
+        case .clipboard: return "Clip"
         case .snippets: return "Snippets"
         case .symbols: return "Symbols"
-        case .developer: return "Developer"
+        case .developer: return "Dev"
         case .keyboard: return "Keyboard"
         case .settings: return "Settings"
         }
