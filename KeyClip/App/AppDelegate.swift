@@ -31,8 +31,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = NSImage(systemSymbolName: "keyboard", accessibilityDescription: "KeyClip")
-        item.button?.action = #selector(togglePanel)
+        item.button?.action = #selector(statusItemClicked)
         item.button?.target = self
+        item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         statusItem = item
     }
 
@@ -57,7 +58,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         HotKeyManager.shared.updateBinding(binding)
     }
 
-    @objc private func togglePanel() {
+    @objc private func statusItemClicked(_ sender: Any?) {
+        guard let event = NSApp.currentEvent, event.type == .rightMouseUp else {
+            togglePanel()
+            return
+        }
+        showStatusMenu()
+    }
+
+    private func showStatusMenu() {
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Quit KeyClip", action: #selector(quitApp), keyEquivalent: "q"))
+        statusItem?.menu = menu
+        statusItem?.button?.performClick(nil)
+        // Clear the menu afterward so a plain left-click goes back to togglePanel
+        // instead of re-showing this menu (NSStatusItem can't have both an
+        // action and a menu active on the button at the same time).
+        statusItem?.menu = nil
+    }
+
+    @objc private func quitApp() {
+        NSApp.terminate(nil)
+    }
+
+    private func togglePanel() {
         guard let panel else { return }
         if panel.isVisible {
             panel.orderOut(nil)
