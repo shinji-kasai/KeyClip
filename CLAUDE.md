@@ -193,6 +193,25 @@ Repo: https://github.com/shinji-kasai/KeyClip (public).
    copy to `/Applications`. First launch will show Gatekeeper's "unidentified
    developer" warning (expected, not notarized) — right-click → Open once.
 
+## Releasing
+
+Push a tag matching `v*` (e.g. `git tag v1.0.1 && git push origin v1.0.1`) and
+`.github/workflows/release.yml` builds a Release-configuration universal
+binary (arm64 + x86_64), ad-hoc signs it (`CODE_SIGN_IDENTITY="-"`, no
+Developer ID/Apple account needed), zips it with `ditto`, and publishes a
+GitHub Release with the zip attached. First release (`v1.0.0`) was built
+manually the same way before this workflow existed —
+https://github.com/shinji-kasai/KeyClip/releases/tag/v1.0.0.
+
+**Unverified risk**: this project's toolchain (`MACOSX_DEPLOYMENT_TARGET =
+26.5`, `CreatedOnToolsVersion = 26.6` in `project.pbxproj`) is far newer than
+any Xcode/SDK version confirmed available on GitHub-hosted `macos-15`
+runners as of this workflow's creation — it has not been test-run. If the
+build step fails with an SDK-not-found-style error, check
+`actions/runner-images` for which Xcode versions `macos-15` currently ships,
+and either pin a `runs-on`/`xcode-select` combination that has a matching
+SDK, or lower `MACOSX_DEPLOYMENT_TARGET` to something the runner supports.
+
 ## Verifying changes
 
 There's no test target yet (M1 scope didn't call for one). Verify manually:

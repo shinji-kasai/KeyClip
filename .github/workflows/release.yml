@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode/SDK versions
+        run: |
+          xcodebuild -version
+          xcrun --sdk macosx --show-sdk-version
+
+      - name: Build Release (ad-hoc signed, universal binary)
+        run: |
+          xcodebuild \
+            -project KeyClip.xcodeproj \
+            -scheme KeyClip \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=YES \
+            build
+
+      - name: Locate and zip built app
+        id: package
+        run: |
+          set -euo pipefail
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -type d -name "KeyClip.app" -path "*/Release/*" | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "KeyClip.app not found under DerivedData" >&2
+            exit 1
+          fi
+          VERSION="${GITHUB_REF_NAME#v}"
+          ZIP_NAME="KeyClip-${VERSION}.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_NAME"
+          echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.package.outputs.zip_name }}
+          name: "KeyClip ${{ github.ref_name }}"
+          body: |
+            ## Installing
+            1. Download the `.zip` below and unzip it
+            2. Drag `KeyClip.app` to `/Applications`
+            3. **Right-click → Open** the first time (this build isn't notarized, so Gatekeeper otherwise blocks it as "unidentified developer" — right-click Open bypasses that one-time warning)
+            4. Grant **Accessibility** and **Input Monitoring** access when prompted (Settings tab in the app)
+
+            ## Notes
+            - Universal binary (Apple Silicon + Intel)
+            - Not sandboxed, not App Store distributed — personal-use build, ad-hoc signed
