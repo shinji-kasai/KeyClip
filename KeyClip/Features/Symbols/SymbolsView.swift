@@ -73,10 +73,12 @@ struct SymbolsView: View {
 
     private var searchField: some View {
         HStack {
-            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            Image(systemName: "magnifyingglass").foregroundStyle(theme.text.opacity(0.6))
             TextField("Search symbols...", text: $searchText)
                 .textFieldStyle(.plain)
+                .foregroundStyle(theme.text)
         }
+        .background(theme.background)
         .padding(8)
     }
 

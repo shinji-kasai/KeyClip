@@ -37,32 +37,39 @@ struct ClipboardView: View {
 
     private var searchField: some View {
         HStack {
-            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            Image(systemName: "magnifyingglass").foregroundStyle(theme.text.opacity(0.6))
             TextField("Search...", text: $searchText)
                 .textFieldStyle(.plain)
+                .foregroundStyle(theme.text)
         }
         .padding(8)
+        .background(theme.background)
     }
 
     private var emptyState: some View {
         VStack(spacing: 8) {
             Image(systemName: "doc.on.clipboard")
                 .font(.system(size: 32))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.text.opacity(0.6))
             Text("Copy something to see it here")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.text.opacity(0.6))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(theme.background)
     }
 
     private var list: some View {
         List {
             if !pinnedOrFavorite.isEmpty {
-                Section("Favorites") {
+                Section {
                     ForEach(pinnedOrFavorite) { row(for: $0) }
+                } header: {
+                    sectionHeader("Favorites")
                 }
-                Section("History") {
+                Section {
                     ForEach(history) { row(for: $0) }
+                } header: {
+                    sectionHeader("History")
                 }
             } else {
                 ForEach(history) { row(for: $0) }
@@ -71,6 +78,10 @@ struct ClipboardView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(theme.background)
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title).foregroundStyle(theme.text.opacity(0.6))
     }
 
     private func row(for item: ClipboardItem) -> some View {

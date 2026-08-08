@@ -48,37 +48,43 @@ struct SnippetsView: View {
 
     private var header: some View {
         HStack {
-            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            Image(systemName: "magnifyingglass").foregroundStyle(theme.text.opacity(0.6))
             TextField("Search...", text: $searchText)
                 .textFieldStyle(.plain)
+                .foregroundStyle(theme.text)
             Spacer()
             Button {
                 editingSnippet = nil
                 isPresentingEditor = true
             } label: {
                 Image(systemName: "plus.circle.fill")
+                    .foregroundStyle(theme.text.opacity(0.8))
             }
             .buttonStyle(.plain)
         }
         .padding(8)
+        .background(theme.background)
     }
 
     private var emptyState: some View {
         VStack(spacing: 8) {
             Image(systemName: "text.badge.plus")
                 .font(.system(size: 32))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.text.opacity(0.6))
             Text("No snippets yet — add one to get started")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.text.opacity(0.6))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(theme.background)
     }
 
     private var list: some View {
         List {
             ForEach(grouped, id: \.category) { group in
-                Section(group.category) {
+                Section {
                     ForEach(group.items) { row(for: $0) }
+                } header: {
+                    Text(group.category).foregroundStyle(theme.text.opacity(0.6))
                 }
             }
         }

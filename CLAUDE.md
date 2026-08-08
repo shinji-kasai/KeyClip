@@ -123,17 +123,27 @@ Repo: https://github.com/shinji-kasai/KeyClip (public).
   `text`, `hover`, `selected` — injected once via
   `.environmentObject(ThemeStore.shared)` in `FloatingPanel`, so any view can
   just declare `@EnvironmentObject private var theme: ThemeStore` rather than
-  threading it through. 5 built-in presets (`ThemePresets.all`); calling any
-  `theme.setX(_:)` switches to a "custom" theme seeded from the *current*
-  colors first (`markCustom()`), so changing one color doesn't blank out the
-  other three. Colors persist as JSON-encoded RGBA component arrays in
-  `UserDefaults`, not `@AppStorage` directly — `Color` isn't
+  threading it through. 9 built-in presets (`ThemePresets.all`: System,
+  Light, Dark, Ocean, Forest, Orange, Cream, Tiffany Blue, Matrix); calling
+  any `theme.setX(_:)` switches to a "custom" theme seeded from the
+  *current* colors first (`markCustom()`), so changing one color doesn't
+  blank out the other three. Colors persist as JSON-encoded RGBA component
+  arrays in `UserDefaults`, not `@AppStorage` directly — `Color` isn't
   `RawRepresentable`, so `ThemeStore` does its own encode/decode
   (`saveColor`/`loadColor`) rather than trying to force it through
-  `@AppStorage`. Applied to the tab bar, panel background, and
-  Clipboard/Snippets/Symbols row text/hover — deliberately *not* applied to
-  Settings' own `Form` controls, which keep native macOS grouped-form
-  styling.
+  `@AppStorage`. Applied everywhere, including Settings itself (the initial
+  "keep Settings native" decision was reversed once the user asked for it
+  explicitly).
+  - **A `List` `Section("title")` header does NOT pick up `theme.text`** —
+    that initializer renders its title with the system default color, not
+    whatever you pass elsewhere. This caused a real readability bug (black
+    section headers on a dark custom background) that shipped in the first
+    theming pass. Always use the closure form instead:
+    `Section { ... } header: { Text("title").foregroundStyle(theme.text.opacity(0.6)) }`.
+    Same gap existed for search-field icons/text and empty-state text
+    (`.secondary` instead of `theme.text`) — check for stray `.secondary`/
+    `.primary` when adding theme support to a new view, grep won't catch it
+    since those are valid modifiers, just the wrong color source.
 
 ## Conventions
 

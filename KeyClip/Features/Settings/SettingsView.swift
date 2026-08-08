@@ -21,52 +21,64 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("Visible Tabs") {
-                Toggle("Clipboard", isOn: $clipboardEnabled)
-                Toggle("Snippets", isOn: $snippetsEnabled)
-                Toggle("Symbols", isOn: $symbolsEnabled)
+            Section {
+                themedToggle("Clipboard", isOn: $clipboardEnabled)
+                themedToggle("Snippets", isOn: $snippetsEnabled)
+                themedToggle("Symbols", isOn: $symbolsEnabled)
+            } header: {
+                sectionHeader("Visible Tabs")
             }
 
-            Section("Shortcuts") {
+            Section {
                 HStack {
-                    Text("Open Panel")
+                    Text("Open Panel").foregroundStyle(theme.text)
                     Spacer()
                     HotKeyRecorderView(binding: $openPanelBinding)
                         .frame(width: 140, height: 28)
                 }
-                Toggle("Double-⌘ to Open Panel", isOn: $doubleCommandTapEnabled)
+                themedToggle("Double-⌘ to Open Panel", isOn: $doubleCommandTapEnabled)
+            } header: {
+                sectionHeader("Shortcuts")
             }
 
-            Section("Appearance") {
+            Section {
                 Picker("Theme", selection: presetBinding) {
                     ForEach(ThemePresets.all) { preset in
                         Text(preset.name).tag(preset.id)
                     }
                     Text("Custom").tag(ThemePresets.customID)
                 }
+                .foregroundStyle(theme.text)
                 ColorPicker("Background", selection: Binding(
                     get: { theme.background },
                     set: { theme.setBackground($0) }
                 ))
+                .foregroundStyle(theme.text)
                 ColorPicker("Text", selection: Binding(
                     get: { theme.text },
                     set: { theme.setText($0) }
                 ))
+                .foregroundStyle(theme.text)
                 ColorPicker("Hover Highlight", selection: Binding(
                     get: { theme.hover },
                     set: { theme.setHover($0) }
                 ))
+                .foregroundStyle(theme.text)
                 ColorPicker("Selected Highlight", selection: Binding(
                     get: { theme.selected },
                     set: { theme.setSelected($0) }
                 ))
+                .foregroundStyle(theme.text)
+            } header: {
+                sectionHeader("Appearance")
             }
 
-            Section("Permissions") {
+            Section {
                 HStack {
                     Image(systemName: isAccessibilityTrusted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                         .foregroundStyle(isAccessibilityTrusted ? .green : .orange)
                     Text(isAccessibilityTrusted ? "Accessibility access granted" : "Accessibility access required to insert text and for Double-⌘ to open the panel")
+                        .foregroundStyle(theme.text)
                     Spacer()
                     if !isAccessibilityTrusted {
                         Button("Open System Settings") {
@@ -78,6 +90,7 @@ struct SettingsView: View {
                     Image(systemName: isInputMonitoringTrusted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                         .foregroundStyle(isInputMonitoringTrusted ? .green : .orange)
                     Text(isInputMonitoringTrusted ? "Input Monitoring access granted" : "Input Monitoring access required for snippet typing-triggers")
+                        .foregroundStyle(theme.text)
                     Spacer()
                     if !isInputMonitoringTrusted {
                         Button("Grant Access") {
@@ -85,9 +98,13 @@ struct SettingsView: View {
                         }
                     }
                 }
+            } header: {
+                sectionHeader("Permissions")
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(theme.background)
         .onChange(of: openPanelBinding) { _, newValue in
             HotKeyManager.shared.updateBinding(newValue)
         }
@@ -101,6 +118,16 @@ struct SettingsView: View {
         .onAppear {
             isAccessibilityTrusted = AccessibilityPermission.isTrusted(prompt: false)
             isInputMonitoringTrusted = InputMonitoringPermission.isTrusted
+        }
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title).foregroundStyle(theme.text.opacity(0.6))
+    }
+
+    private func themedToggle(_ title: String, isOn: Binding<Bool>) -> some View {
+        Toggle(isOn: isOn) {
+            Text(title).foregroundStyle(theme.text)
         }
     }
 

@@ -52,8 +52,36 @@ enum ThemePresets {
         hover: Color.green.opacity(0.18),
         selected: Color.green.opacity(0.35)
     )
+    static let orange = ThemePreset(
+        id: "orange", name: "Orange",
+        background: Color(red: 1.0, green: 0.93, blue: 0.82),
+        text: Color(red: 0.35, green: 0.18, blue: 0.02),
+        hover: Color.orange.opacity(0.2),
+        selected: Color.orange.opacity(0.4)
+    )
+    static let cream = ThemePreset(
+        id: "cream", name: "Cream",
+        background: Color(red: 0.98, green: 0.95, blue: 0.88),
+        text: Color(red: 0.25, green: 0.2, blue: 0.15),
+        hover: Color.brown.opacity(0.15),
+        selected: Color.brown.opacity(0.3)
+    )
+    static let tiffanyBlue = ThemePreset(
+        id: "tiffanyBlue", name: "Tiffany Blue",
+        background: Color(red: 0.93, green: 0.98, blue: 0.97),
+        text: Color(red: 0.05, green: 0.2, blue: 0.19),
+        hover: Color(red: 0.04, green: 0.73, blue: 0.71).opacity(0.2),
+        selected: Color(red: 0.04, green: 0.73, blue: 0.71).opacity(0.4)
+    )
+    static let matrix = ThemePreset(
+        id: "matrix", name: "Matrix",
+        background: .black,
+        text: Color(red: 0.0, green: 1.0, blue: 0.25),
+        hover: Color.green.opacity(0.18),
+        selected: Color.green.opacity(0.4)
+    )
 
-    static let all: [ThemePreset] = [system, light, dark, ocean, forest]
+    static let all: [ThemePreset] = [system, light, dark, ocean, forest, orange, cream, tiffanyBlue, matrix]
     static let customID = "custom"
 }
 

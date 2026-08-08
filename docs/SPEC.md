@@ -253,9 +253,23 @@ history if the user asks for it again; do not proactively rebuild.
       so the other three colors don't reset. Shared app-wide via
       `.environmentObject(ThemeStore.shared)` injected once in
       `FloatingPanel`; applied to the tab bar, panel background, and the
-      Clipboard/Snippets/Symbols row text + hover colors. Settings' own Form
-      controls keep native macOS styling (not themed) since re-skinning
-      system form chrome looked inconsistent, not because it was out of scope.
+      Clipboard/Snippets/Symbols row text + hover colors, **and now Settings
+      itself** (reversed the earlier "keep Settings native" call — the user
+      asked for it explicitly; Section headers use themed custom labels,
+      Toggles wrap their label in themed `Text`, native chrome like
+      `ColorPicker`'s swatch and context menus is left alone since that's
+      genuinely not re-stylable).
+    - **Fixed a real bug from the first theming pass**: `List` `Section`
+      headers (Clipboard's "Favorites"/"History", Snippets' category names)
+      used the plain `Section("title")` initializer, which renders with the
+      system's default text color — not `theme.text`. On a dark custom
+      background this stayed black and was unreadable. Fixed by switching to
+      the closure-based `Section { ... } header: { Text(...).foregroundStyle(theme.text.opacity(0.6)) }`
+      form everywhere a Section appears. Also themed the search-field icons/
+      text and empty-state text in all three tabs, which had the same
+      `.secondary`-not-`theme.text` gap.
+    - Added 4 more presets: **Orange, Cream, Tiffany Blue, Matrix** (green
+      text on black, à la the movie) — 9 presets total.
 - [ ] Per-tab jump hotkeys (Open Clipboard, Open Symbols, etc.) — the
       `HotKeyManager`/`HotKeyBinding` design already generalizes to this
 - [ ] Any remaining settings/UX polish
