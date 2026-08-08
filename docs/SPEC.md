@@ -270,6 +270,23 @@ history if the user asks for it again; do not proactively rebuild.
       `.secondary`-not-`theme.text` gap.
     - Added 4 more presets: **Orange, Cream, Tiffany Blue, Matrix** (green
       text on black, à la the movie) — 9 presets total.
+    - **Fixed a second readability bug + added a 5th customizable color**:
+      the tab bar's selected-tab text used plain `theme.text` regardless of
+      what `theme.selected` (the highlight behind it) was — on Matrix
+      (bright green text, green-tinted-black highlight) this read as
+      low-contrast. Added `selectedText` as its own field on `ThemePreset`/
+      `ThemeStore` (with its own `ColorPicker` in Settings → Appearance, so
+      it's manually adjustable regardless of preset), applied only when a
+      tab is selected. Each of the 9 presets got a `selectedText` chosen for
+      contrast against its own `selected` highlight (mostly white or black,
+      not necessarily matching the base `text` color).
+    - **Also reverted theming `Picker`/`ColorPicker` label text** in
+      Settings → Appearance. Those are native controls that draw their own
+      box/swatch chrome independent of `.scrollContentBackground(.hidden)`
+      — forcing `theme.text` onto their labels fought that native chrome
+      and was reported as hard to read. Plain `Toggle`/`Text` rows (which
+      really do sit on `theme.background` with no competing native box)
+      keep their theming.
 - [ ] Per-tab jump hotkeys (Open Clipboard, Open Symbols, etc.) — the
       `HotKeyManager`/`HotKeyBinding` design already generalizes to this
 - [ ] Any remaining settings/UX polish

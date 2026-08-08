@@ -42,33 +42,37 @@ struct SettingsView: View {
             }
 
             Section {
+                // Picker/ColorPicker are native controls that draw their own
+                // box/swatch chrome regardless of the surrounding background,
+                // so they deliberately do NOT get `.foregroundStyle(theme.text)`
+                // here — forcing that on them fought their own chrome and was
+                // reported as hard to read. Let macOS handle their label color.
                 Picker("Theme", selection: presetBinding) {
                     ForEach(ThemePresets.all) { preset in
                         Text(preset.name).tag(preset.id)
                     }
                     Text("Custom").tag(ThemePresets.customID)
                 }
-                .foregroundStyle(theme.text)
                 ColorPicker("Background", selection: Binding(
                     get: { theme.background },
                     set: { theme.setBackground($0) }
                 ))
-                .foregroundStyle(theme.text)
                 ColorPicker("Text", selection: Binding(
                     get: { theme.text },
                     set: { theme.setText($0) }
                 ))
-                .foregroundStyle(theme.text)
                 ColorPicker("Hover Highlight", selection: Binding(
                     get: { theme.hover },
                     set: { theme.setHover($0) }
                 ))
-                .foregroundStyle(theme.text)
                 ColorPicker("Selected Highlight", selection: Binding(
                     get: { theme.selected },
                     set: { theme.setSelected($0) }
                 ))
-                .foregroundStyle(theme.text)
+                ColorPicker("Selected Text", selection: Binding(
+                    get: { theme.selectedText },
+                    set: { theme.setSelectedText($0) }
+                ))
             } header: {
                 sectionHeader("Appearance")
             }

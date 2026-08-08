@@ -119,21 +119,32 @@ Repo: https://github.com/shinji-kasai/KeyClip (public).
   filters+switches on it and shows a header ("KeyClip vX.Y") above the tab
   bar.
 - **Theming**: `KeyClip/Services/ThemeStore.swift` is an `ObservableObject`
-  singleton (`ThemeStore.shared`) holding four live colors — `background`,
-  `text`, `hover`, `selected` — injected once via
+  singleton (`ThemeStore.shared`) holding five live colors — `background`,
+  `text`, `hover`, `selected`, `selectedText` — injected once via
   `.environmentObject(ThemeStore.shared)` in `FloatingPanel`, so any view can
   just declare `@EnvironmentObject private var theme: ThemeStore` rather than
-  threading it through. 9 built-in presets (`ThemePresets.all`: System,
-  Light, Dark, Ocean, Forest, Orange, Cream, Tiffany Blue, Matrix); calling
-  any `theme.setX(_:)` switches to a "custom" theme seeded from the
+  threading it through. `selectedText` is intentionally independent of
+  `text`: it's the color used only when a tab bar item is the selected one,
+  because a `selected` highlight close in hue/lightness to `text` (e.g.
+  Matrix's green highlight behind green text) reads as low-contrast even
+  though `text` alone is fine against `background`. 9 built-in presets
+  (`ThemePresets.all`: System, Light, Dark, Ocean, Forest, Orange, Cream,
+  Tiffany Blue, Matrix), each with its own hand-picked `selectedText` (mostly
+  white or black — not necessarily the same as that preset's `text`).
+  Calling any `theme.setX(_:)` switches to a "custom" theme seeded from the
   *current* colors first (`markCustom()`), so changing one color doesn't
-  blank out the other three. Colors persist as JSON-encoded RGBA component
+  blank out the others. Colors persist as JSON-encoded RGBA component
   arrays in `UserDefaults`, not `@AppStorage` directly — `Color` isn't
   `RawRepresentable`, so `ThemeStore` does its own encode/decode
   (`saveColor`/`loadColor`) rather than trying to force it through
   `@AppStorage`. Applied everywhere, including Settings itself (the initial
   "keep Settings native" decision was reversed once the user asked for it
-  explicitly).
+  explicitly) — **except** `Picker`/`ColorPicker` label text in Settings →
+  Appearance, which deliberately does NOT get `.foregroundStyle(theme.text)`:
+  those are native controls that draw their own box/swatch chrome regardless
+  of `.scrollContentBackground(.hidden)`, so forcing theme text onto their
+  labels fights that native chrome rather than helping — this was tried and
+  reported as hard to read, don't reintroduce it.
   - **A `List` `Section("title")` header does NOT pick up `theme.text`** —
     that initializer renders its title with the system default color, not
     whatever you pass elsewhere. This caused a real readability bug (black

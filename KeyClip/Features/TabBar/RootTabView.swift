@@ -98,7 +98,7 @@ private struct TabBarButton: View {
                 Text(tab.title)
                     .font(.callout)
             }
-            .foregroundStyle(theme.text)
+            .foregroundStyle(isSelected ? theme.selectedText : theme.text)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
