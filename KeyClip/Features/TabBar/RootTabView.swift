@@ -9,8 +9,6 @@ struct RootTabView: View {
     @AppStorage(FeatureTab.clipboard.visibilityDefaultsKey) private var clipboardEnabled = true
     @AppStorage(FeatureTab.snippets.visibilityDefaultsKey) private var snippetsEnabled = true
     @AppStorage(FeatureTab.symbols.visibilityDefaultsKey) private var symbolsEnabled = true
-    @AppStorage(FeatureTab.developer.visibilityDefaultsKey) private var developerEnabled = true
-    @AppStorage(FeatureTab.keyboard.visibilityDefaultsKey) private var keyboardEnabled = true
 
     @State private var selectedTab: FeatureTab = .clipboard
 
@@ -23,8 +21,6 @@ struct RootTabView: View {
         case .clipboard: return clipboardEnabled
         case .snippets: return snippetsEnabled
         case .symbols: return symbolsEnabled
-        case .developer: return developerEnabled
-        case .keyboard: return keyboardEnabled
         case .settings: return true
         }
     }
@@ -81,8 +77,6 @@ struct RootTabView: View {
         case .settings: SettingsView()
         case .snippets: SnippetsView()
         case .symbols: SymbolsView()
-        case .developer: DeveloperView()
-        case .keyboard: KeyboardView()
         }
     }
 }

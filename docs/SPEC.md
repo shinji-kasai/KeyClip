@@ -10,15 +10,18 @@ milestone checklist at the bottom first.
 A macOS keyboard/clipboard utility. Main UI is a tab bar:
 
 ```
-[ Clipboard ] [ Snippets ] [ Symbols ] [ Developer ] [ Keyboard ] [ Settings ]
+[ Clip ] [ Snippets ] [ Symbols ] [ Settings ]
 ```
+
+(Originally specified with two more tabs, Developer and Keyboard — both were
+built in Milestones 4–5 and then **removed entirely** per explicit user
+request; see the "Removed scope" note before the milestone checklist. The
+rest of this section's "any feature can be hidden" behavior still applies to
+the three remaining optional tabs.)
 
 Each tab is a fully separate feature. In Settings, the user can turn any
 feature OFF except Settings itself, and that tab disappears entirely from the
-bar — unused features are never left cluttering the UI. Example: turning off
-Developer changes the bar from
-`Clipboard | Snippets | Symbols | Developer | Keyboard` to
-`Clipboard | Snippets | Symbols | Keyboard`.
+bar — unused features are never left cluttering the UI.
 
 ## 2. Clipboard (the core feature)
 
@@ -64,55 +67,55 @@ Developer changes the bar from
 - Recently-used symbols are ranked by frequency of use over time — a symbol
   used repeatedly rises to the top of that section (not just most-recent).
 
-## 6. Developer
+## 6. Developer — REMOVED
 
-- A palette of code-oriented symbols and keywords: brackets (`{ } [ ] ( ) < >`),
-  operators (`=> -> == === != !== && || ++ -- += -=`), SQL keywords (SELECT,
-  FROM, WHERE, JOIN, GROUP BY, ORDER BY), Python keywords (def, class, self,
-  None, True, False), JavaScript keywords (const, let, async, await, Promise).
-- Click to insert, same mechanism as Clipboard/Symbols.
+~~A palette of code-oriented symbols and keywords: brackets, operators, SQL/
+Python/JavaScript keywords, click to insert.~~ Built in Milestone 4, then
+removed in full per explicit user request. Do not rebuild without the user
+asking again.
 
-## 7. Keyboard
+## 7. Keyboard — REMOVED
 
-- An on-screen input-assistance keyboard (not a plain QWERTY replica) — the
-  layout itself should eventually be user-configurable.
+~~An on-screen input-assistance keyboard.~~ Built in Milestone 5 (first as a
+virtual keyboard, then reworked into a width-conversion control panel after
+user feedback), then removed in full per explicit user request. Do not
+rebuild without the user asking again.
 
-## 8. Japanese input width settings
+## 8. Japanese input width settings — REMOVED
 
-- Per category — Numbers, Katakana, Alphabet, Symbols, Space — the user picks
-  Full-width or Half-width as a per-category checkbox/toggle, e.g.:
-  ```
-  ☑ Numbers     ☑ Katakana     ☐ Alphabet     ☑ Symbols
-  ```
+~~Per category — Numbers, Katakana, Alphabet, Symbols, Space — full-width/
+half-width enable + choice.~~ This lived entirely inside the Keyboard tab
+(§7) and was removed along with it.
 
-## 9. Japanese width-conversion example
+## 9. Japanese width-conversion example — REMOVED (reference only)
 
-Given input `１２３ＡＢＣ　カタカナ` and settings:
+Kept here only so the exact worked example isn't lost if this is ever
+rebuilt. Given input `１２３ＡＢＣ　カタカナ` and settings:
 - Numbers → Half-width, Alphabet → Half-width, Katakana → Half-width,
   Space → Half-width
   → Result: `123ABC ｶﾀｶﾅ`
 - Numbers → Full-width, Katakana → Full-width, Alphabet → Half-width
   → Result: `１２３ABC カタカナ`
 
-This conversion applies to text typed via the Keyboard tab before it's
-inserted into the target app.
+The `WidthConverter` implementation (run-based, per-category, careful about
+voiced/semi-voiced katakana combining marks) was verified against both of
+these before it was deleted — if rebuilt, re-derive from git history
+(`Services/WidthConverter.swift`, removed alongside the Keyboard tab) rather
+than from scratch.
 
 ## 10. Global shortcuts
 
-- Default example: ⌘⇧V opens the Keyboard/panel; ⌘⇧C jumps straight to
-  Clipboard; ⌘⇧S jumps straight to Symbols.
+- Default example: ⌘⇧V opens the panel; ⌘⇧C jumps straight to Clipboard;
+  ⌘⇧S jumps straight to Symbols.
 - All shortcuts are user-remappable in Settings via a hotkey recorder per
   action.
 
 ## 11. Settings
 
 Kept as simple as possible:
-- **Visible Tabs** — checkbox per feature (Clipboard/Snippets/Symbols/
-  Developer/Keyboard); Settings itself has no checkbox.
-- **Input Conversion** — a Full-width/Half-width dropdown per category
-  (Numbers, Katakana, Alphabet, Symbols, Space).
-- **Shortcuts** — one hotkey-recorder row per action (Open Keyboard, Open
-  Clipboard, etc.).
+- **Visible Tabs** — checkbox per feature (Clipboard/Snippets/Symbols);
+  Settings itself has no checkbox.
+- **Shortcuts** — one hotkey-recorder row per action (Open Panel, etc.).
 
 ## 12. Tab visibility behavior
 
@@ -132,14 +135,10 @@ but empty/greyed-out.
    Favorites          Shortcuts       Unicode / Math / Science / Greek / Arrows
    Recent             Categories
                          │
-                    Developer
-                    Code Symbols, SQL, Python, JavaScript
-                         │
-                      Keyboard
-                 Japanese Input, Full/Half Width, Custom Layout
-                         │
                       Settings
 ```
+
+(Developer and Keyboard branches removed — see §6/§7.)
 
 ---
 
@@ -149,10 +148,9 @@ but empty/greyed-out.
   activation policy). Summoned via global hotkey into a floating,
   non-activating panel overlaid on the frontmost app (Raycast/Alfred/Maccy
   style) — not a normal windowed Dock app.
-- **Keyboard tab**: an in-app virtual keyboard whose keystrokes go through the
-  same simulated-keystroke injection mechanism as every other tab. **Not** a
-  real macOS Input Method Kit extension — that was explicitly ruled out as
-  disproportionate effort for this project.
+- **Scope**: Developer and Keyboard tabs were removed in full after being
+  built (Milestones 4–5) — see §6/§7. The app is Clipboard + Snippets +
+  Symbols + Settings only unless the user asks to rebuild one of those.
 - **Distribution**: personal use, direct/local distribution — not the Mac App
   Store, not sandboxed. Signed to run locally under the user's personal Apple
   ID team so it behaves like a normal double-clickable app (see root
@@ -181,7 +179,9 @@ but empty/greyed-out.
 - [x] Settings tab: tab-visibility toggles, hotkey recorder, accessibility
       status banner
 - [x] Snippets/Symbols/Developer/Keyboard wired in as placeholder tabs
-      (fully plugged into the visibility-toggle system, no real content yet)
+      (fully plugged into the visibility-toggle system, no real content yet
+      — Developer/Keyboard were later built in M4/M5 then removed entirely,
+      see below)
 - [x] Local git repo + `.gitignore` + `CLAUDE.md`/`docs/SPEC.md`
 
 ### Milestone 2 — Snippets ✅
@@ -213,56 +213,28 @@ but empty/greyed-out.
 - [x] Click-to-copy via the same `copyToClipboard` pasteboard mechanism as
       Clipboard/Snippets, hover highlighting, right-click to favorite
 
-### Milestone 4 — Developer ✅
-- [x] Built-in token catalog (`DeveloperCatalog.swift`) grouped into
-      categories (Brackets, Operators, SQL, Python, JavaScript) — reference
-      data, no persistence needed (no favorites/recently-used for this tab,
-      unlike Symbols — not called for in the original spec)
-- [x] Collapsible categories (same chevron-toggle pattern as Symbols)
-- [x] New `FlowLayout` (`Features/Shared/FlowLayout.swift`) wraps
-      variable-width token chips onto new rows — chosen over `LazyVGrid`
-      because tokens vary a lot in length ("if" vs. "GROUP BY") and a fixed
-      grid would waste space or clip long tokens
-- [x] Click-to-copy via the same `copyToClipboard` mechanism, hover
-      highlighting on each chip
+### Milestone 4 — Developer ❌ REMOVED
+Was built in full (built-in token catalog grouped into Brackets/Operators/
+SQL/Python/JavaScript, collapsible categories, a reusable `FlowLayout` for
+wrapping variable-width chips, click-to-copy). **Removed entirely per
+explicit user request** — the tab, `DeveloperView.swift`,
+`Models/DeveloperCatalog.swift`, and `Features/Shared/FlowLayout.swift` were
+all deleted. Recoverable from git history if the user asks for it again; do
+not proactively rebuild.
 
-### Milestone 5 — Keyboard + Japanese width conversion ✅
-**Revised after initial delivery**: the Keyboard tab is a **width-conversion
-control panel**, not an on-screen keyboard — an earlier version included a
-clickable QWERTY grid, which was removed once the user clarified this tab's
-job is to *control* conversion, not provide an alternate way to type.
-
-- [x] `KeyboardView.swift`: per-category (Numbers/Katakana/Alphabet/Symbols/
-      Space) **enable/disable toggle** + Full/Half-width picker (both, not
-      just the width choice — matches the original spec's checkbox +
-      radio-button illustration more closely than the first pass did).
-      Alphabet defaults OFF, the other four default ON, matching the spec's
-      own example checklist.
-- [x] Gated on the Mac's **active keyboard input source actually being
-      Japanese** — `InputSourceMonitor`/`InputSourceObserver`
-      (`Services/InputSourceMonitor.swift`) reads `TISCopyCurrentKeyboardInputSource`
-      and listens for `kTISNotifySelectedKeyboardInputSourceChanged` so the
-      tab live-enables/disables itself (with a notice) as the user switches
-      input sources — not just a one-time check.
-- [x] A plain editable `TextField` (not a virtual keyboard) is where the
-      conversion is actually used — type with your real keyboard or paste
-      existing text (e.g. the spec's own "１２３ＡＢＣ　カタカナ" example)
-      to see the converted result and copy it.
-- [x] `WidthConverter` (`Services/WidthConverter.swift`): groups the input
-      into contiguous same-category runs and transforms each run as a whole
-      via `String.applyingTransform(.fullwidthToHalfwidth, reverse:)` — a
-      character-at-a-time approach was tried first and is specifically wrong
-      for voiced/semi-voiced katakana (ｶﾞ ⇄ ガ), since a half-width kana base
-      + its sound mark is one `Character` with 2 Unicode scalars; classify by
-      the base scalar, not `scalars.count == 1`, or the mark gets silently
-      skipped. A disabled category is simply omitted from the settings dict
-      passed to `convert`, which already passes unconfigured categories
-      through unchanged — no separate on/off branch needed there. Verified
-      against both of the spec's own worked examples plus a voiced-katakana
-      round trip before shipping.
-- [x] This only affects text typed/pasted into KeyClip's own Keyboard tab
-      field, not real-time system-wide typing (that would need a CGEventTap-
-      based engine like Snippets' expansion engine — out of scope here).
+### Milestone 5 — Keyboard + Japanese width conversion ❌ REMOVED
+Was built in full, in two iterations: first an on-screen QWERTY keyboard +
+compose box, then reworked (per user feedback) into a width-conversion
+control panel — per-category enable/disable + Full/Half-width picker,
+gated on the Mac's active input source actually being Japanese (via
+`TISCreateInputSourceList`/`kTISPropertyInputSourceIsSelected`, after an
+earlier `TISCopyCurrentKeyboardInputSource`-based version was confirmed
+wrong — see git history for why that API is unreliable for a non-activating
+background panel). **Removed entirely per explicit user request** — the tab,
+`KeyboardView.swift`, `Services/WidthConverter.swift`, and
+`Services/InputSourceMonitor.swift` were all deleted. The worked conversion
+examples are preserved in §9 in case this is rebuilt. Recoverable from git
+history if the user asks for it again; do not proactively rebuild.
 
 ### Milestone 6 — Remaining shortcuts + polish (not started)
 - [ ] Per-tab jump hotkeys (Open Clipboard, Open Symbols, etc.) — the

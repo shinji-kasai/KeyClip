@@ -5,21 +5,22 @@
 KeyClip is a macOS menu-bar keyboard/clipboard utility. It lives in the menu
 bar (no Dock icon) and is summoned via a global hotkey into a floating panel
 overlaid on top of whatever app is frontmost — think Raycast/Alfred/Maccy.
-The panel hosts a tab bar (Clipboard, Snippets, Symbols, Developer, Keyboard,
-Settings); clicking content in Clipboard/Snippets/Symbols/Developer copies it
-to the system pasteboard and hands focus back to the app you were in, ready
-for ⌘V. **Keyboard is different** — it's a width-conversion control panel
-(enable/disable + full/half-width per category, gated on a Japanese input
-source being active), not a click-to-copy palette; see Milestone 5 in
-`docs/SPEC.md` for why an earlier on-screen-keyboard version of this tab was
-replaced. Full product spec, fixed constraints, and the milestone roadmap
-live in `docs/SPEC.md` — read that before assuming a feature is missing or
-before re-deriving scope in conversation.
+The panel hosts a tab bar (Clipboard, Snippets, Symbols, Settings); clicking
+content in Clipboard/Snippets/Symbols copies it to the system pasteboard and
+hands focus back to the app you were in, ready for ⌘V. Full product spec,
+fixed constraints, and the milestone roadmap live in `docs/SPEC.md` — read
+that before assuming a feature is missing or before re-deriving scope in
+conversation.
 
-**Current status: Milestones 1–5 are complete** (Foundation + Clipboard,
-Snippets, Symbols, Developer, Keyboard + width conversion) — all six tabs
-have real content. Remaining scope (per-tab jump hotkeys, polish) is
-Milestone 6 in `docs/SPEC.md`'s checklist.
+**Current status: Milestones 1–3 are complete and in the app** (Foundation +
+Clipboard, Snippets, Symbols). **Milestones 4 (Developer) and 5 (Keyboard +
+width conversion) were built in full and then removed entirely per explicit
+user request** — do not reintroduce a Developer or Keyboard tab, or a
+`WidthConverter`/`InputSourceMonitor`/`DeveloperCatalog`/`FlowLayout` file,
+unless the user asks again; see `docs/SPEC.md`'s §6/§7 and Milestone 4/5
+entries for what they were and why they're gone (recoverable from git
+history if ever needed). Remaining open scope (per-tab jump hotkeys, polish)
+is Milestone 6 in `docs/SPEC.md`'s checklist.
 
 Repo: https://github.com/shinji-kasai/KeyClip (public).
 
@@ -66,14 +67,7 @@ Repo: https://github.com/shinji-kasai/KeyClip (public).
     and types the expansion via `TextInjector`. It skips any event tagged
     with `syntheticEventMarker` so its own output doesn't feed back into the
     buffer or re-trigger.
-  - `KeyClip/Services/InputSourceMonitor.swift` — unrelated to text
-    injection/listening, but gates the Keyboard tab: reads
-    `TISCopyCurrentKeyboardInputSource` and observes
-    `kTISNotifySelectedKeyboardInputSourceChanged` via
-    `DistributedNotificationCenter` so `InputSourceObserver` (an
-    `ObservableObject`) live-updates whether the active input source is
-    Japanese, rather than checking once on tab appearance.
-  - **Clipboard/Snippets/Symbols/Developer click-to-use their content via
+  - **Clipboard/Snippets/Symbols click-to-use their content via
     `copyToClipboard`**, not `TextInjector` — the environment closure
     (`Features/Shared/InjectionEnvironment.swift`) writes to
     `NSPasteboard.general` and reactivates the previously-frontmost app so
@@ -108,11 +102,11 @@ Repo: https://github.com/shinji-kasai/KeyClip (public).
     visibility flags reactively to filter the tab bar live.
 - **Tabs**: `FeatureTab` (`KeyClip/Features/TabBar/FeatureTab.swift`) is the
   single source of truth for tab identity/icon/visibility key (`title` is the
-  short label shown in the tab bar — e.g. "Clip"/"Dev" — not necessarily the
-  full feature name). `Settings` is the only case that's always visible.
-  `RootTabView` filters+switches on it and shows a header ("KeyClip vX.Y")
-  above the tab bar; adding a real view for a currently-placeholder tab
-  (Symbols/Developer/Keyboard) is a one-line swap in that switch statement.
+  short label shown in the tab bar — e.g. "Clip" — not necessarily the full
+  feature name). Current cases: `clipboard, snippets, symbols, settings`.
+  `Settings` is the only case that's always visible. `RootTabView`
+  filters+switches on it and shows a header ("KeyClip vX.Y") above the tab
+  bar.
 
 ## Conventions
 

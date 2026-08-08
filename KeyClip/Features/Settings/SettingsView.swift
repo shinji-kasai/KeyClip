@@ -11,8 +11,6 @@ struct SettingsView: View {
     @AppStorage(FeatureTab.clipboard.visibilityDefaultsKey) private var clipboardEnabled = true
     @AppStorage(FeatureTab.snippets.visibilityDefaultsKey) private var snippetsEnabled = true
     @AppStorage(FeatureTab.symbols.visibilityDefaultsKey) private var symbolsEnabled = true
-    @AppStorage(FeatureTab.developer.visibilityDefaultsKey) private var developerEnabled = true
-    @AppStorage(FeatureTab.keyboard.visibilityDefaultsKey) private var keyboardEnabled = true
 
     @AppStorage(HotKeyBinding.openPanelDefaultsKey) private var openPanelBinding = HotKeyBinding.defaultOpenPanel
 
@@ -25,8 +23,6 @@ struct SettingsView: View {
                 Toggle("Clipboard", isOn: $clipboardEnabled)
                 Toggle("Snippets", isOn: $snippetsEnabled)
                 Toggle("Symbols", isOn: $symbolsEnabled)
-                Toggle("Developer", isOn: $developerEnabled)
-                Toggle("Keyboard", isOn: $keyboardEnabled)
             }
 
             Section("Shortcuts") {

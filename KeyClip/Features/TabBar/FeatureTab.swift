@@ -6,7 +6,7 @@
 import Foundation
 
 enum FeatureTab: String, CaseIterable, Identifiable {
-    case clipboard, snippets, symbols, developer, keyboard, settings
+    case clipboard, snippets, symbols, settings
 
     var id: String { rawValue }
 
@@ -15,8 +15,6 @@ enum FeatureTab: String, CaseIterable, Identifiable {
         case .clipboard: return "Clip"
         case .snippets: return "Snippets"
         case .symbols: return "Symbols"
-        case .developer: return "Dev"
-        case .keyboard: return "Keyboard"
         case .settings: return "Settings"
         }
     }
@@ -26,8 +24,6 @@ enum FeatureTab: String, CaseIterable, Identifiable {
         case .clipboard: return "doc.on.clipboard"
         case .snippets: return "text.badge.plus"
         case .symbols: return "textformat.abc"
-        case .developer: return "chevron.left.forwardslash.chevron.right"
-        case .keyboard: return "keyboard"
         case .settings: return "gearshape"
         }
     }
