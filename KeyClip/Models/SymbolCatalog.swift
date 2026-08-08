@@ -77,7 +77,6 @@ enum SymbolCategory: String, CaseIterable, Identifiable {
                 SymbolEntry(character: "℉", name: "degrees fahrenheit"),
                 SymbolEntry(character: "Å", name: "angstrom"),
                 SymbolEntry(character: "Ω", name: "ohm"),
-                SymbolEntry(character: "μ", name: "micro"),
             ]
         case .greek:
             return [

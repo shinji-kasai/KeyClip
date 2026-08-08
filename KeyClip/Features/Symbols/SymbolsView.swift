@@ -33,7 +33,7 @@ struct SymbolsView: View {
                 $0.useCount != $1.useCount ? $0.useCount > $1.useCount : $0.lastUsedAt > $1.lastUsedAt
             }
             .prefix(16)
-        let byCharacter = Dictionary(uniqueKeysWithValues: SymbolCategory.allSymbols.map { ($0.character, $0) })
+        let byCharacter = Dictionary(SymbolCategory.allSymbols.map { ($0.character, $0) }, uniquingKeysWith: { first, _ in first })
         return ranked.compactMap { byCharacter[$0.character] }
     }
 
