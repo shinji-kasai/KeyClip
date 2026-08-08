@@ -48,6 +48,17 @@ Repo: https://github.com/shinji-kasai/KeyClip (public).
   chicken-and-egg for an app that isn't trusted yet. `HotKeyBinding` is
   `Codable`/`RawRepresentable` (JSON-string-backed) so it works directly as an
   `@AppStorage` value.
+- **Double-⌘ to open the panel**: `KeyClip/Services/DoubleCommandTapDetector.swift`
+  is a second, independent way to summon the panel, additive to
+  `HotKeyManager` (Settings → Shortcuts has a toggle for it, default on).
+  Carbon's `RegisterEventHotKey` can't represent a bare-modifier-key tap (it
+  needs a real virtual key plus modifiers), so this instead watches
+  `.flagsChanged` via a global `NSEvent.addGlobalMonitorForEvents` — gated
+  by Accessibility trust (same category `TextInjector` uses), not Input
+  Monitoring, since it's `NSEvent`-based rather than a `CGEventTap`. Fires on
+  two Command-only presses within 350ms; Command held with any other
+  modifier resets the pending tap, on the assumption it's part of some other
+  shortcut, not a deliberate bare tap.
 - **Text injection vs. keystroke listening** — two distinct mechanisms, two
   distinct TCC permission categories:
   - `KeyClip/Services/TextInjector.swift` *posts* synthetic `CGEvent`s (gated

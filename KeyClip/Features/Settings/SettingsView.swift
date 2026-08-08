@@ -13,6 +13,7 @@ struct SettingsView: View {
     @AppStorage(FeatureTab.symbols.visibilityDefaultsKey) private var symbolsEnabled = true
 
     @AppStorage(HotKeyBinding.openPanelDefaultsKey) private var openPanelBinding = HotKeyBinding.defaultOpenPanel
+    @AppStorage(DoubleCommandTapDetector.enabledDefaultsKey) private var doubleCommandTapEnabled = true
 
     @State private var isAccessibilityTrusted = AccessibilityPermission.isTrusted(prompt: false)
     @State private var isInputMonitoringTrusted = InputMonitoringPermission.isTrusted
@@ -32,13 +33,14 @@ struct SettingsView: View {
                     HotKeyRecorderView(binding: $openPanelBinding)
                         .frame(width: 140, height: 28)
                 }
+                Toggle("Double-⌘ to Open Panel", isOn: $doubleCommandTapEnabled)
             }
 
             Section("Permissions") {
                 HStack {
                     Image(systemName: isAccessibilityTrusted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                         .foregroundStyle(isAccessibilityTrusted ? .green : .orange)
-                    Text(isAccessibilityTrusted ? "Accessibility access granted" : "Accessibility access required to insert text")
+                    Text(isAccessibilityTrusted ? "Accessibility access granted" : "Accessibility access required to insert text and for Double-⌘ to open the panel")
                     Spacer()
                     if !isAccessibilityTrusted {
                         Button("Open System Settings") {
@@ -62,6 +64,13 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .onChange(of: openPanelBinding) { _, newValue in
             HotKeyManager.shared.updateBinding(newValue)
+        }
+        .onChange(of: doubleCommandTapEnabled) { _, newValue in
+            if newValue {
+                DoubleCommandTapDetector.shared.start()
+            } else {
+                DoubleCommandTapDetector.shared.stop()
+            }
         }
         .onAppear {
             isAccessibilityTrusted = AccessibilityPermission.isTrusted(prompt: false)

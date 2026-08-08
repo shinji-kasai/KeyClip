@@ -236,7 +236,15 @@ background panel). **Removed entirely per explicit user request** — the tab,
 examples are preserved in §9 in case this is rebuilt. Recoverable from git
 history if the user asks for it again; do not proactively rebuild.
 
-### Milestone 6 — Remaining shortcuts + polish (not started)
+### Milestone 6 — Remaining shortcuts + polish (in progress)
+- [x] Double-⌘ (two quick Command-key taps, nothing else held) as an
+      additional way to open the panel, alongside the existing ⌘⇧V hotkey —
+      `Services/DoubleCommandTapDetector.swift`. Carbon's `RegisterEventHotKey`
+      can't represent a bare-modifier tap (it needs a real virtual key plus
+      modifiers), so this uses a global `NSEvent.addGlobalMonitorForEvents`
+      on `.flagsChanged` instead — gated by the same Accessibility trust
+      `TextInjector` already needs, not a new permission category. Toggle in
+      Settings → Shortcuts, default on.
 - [ ] Per-tab jump hotkeys (Open Clipboard, Open Symbols, etc.) — the
       `HotKeyManager`/`HotKeyBinding` design already generalizes to this
 - [ ] Any remaining settings/UX polish

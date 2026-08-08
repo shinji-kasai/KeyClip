@@ -38,6 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupPanel()
         setupClipboardMonitor()
         setupHotKey()
+        setupDoubleCommandTap()
         SnippetExpansionEngine.shared.start(modelContext: modelContainer.mainContext)
     }
 
@@ -75,6 +76,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let stored = UserDefaults.standard.string(forKey: HotKeyBinding.openPanelDefaultsKey)
         let binding = stored.flatMap { HotKeyBinding(rawValue: $0) } ?? .defaultOpenPanel
         HotKeyManager.shared.updateBinding(binding)
+    }
+
+    private func setupDoubleCommandTap() {
+        DoubleCommandTapDetector.shared.setHandler { [weak self] in
+            self?.togglePanel()
+        }
+        let enabled = UserDefaults.standard.object(forKey: DoubleCommandTapDetector.enabledDefaultsKey) as? Bool ?? true
+        if enabled {
+            DoubleCommandTapDetector.shared.start()
+        }
     }
 
     @objc private func statusItemClicked(_ sender: Any?) {
