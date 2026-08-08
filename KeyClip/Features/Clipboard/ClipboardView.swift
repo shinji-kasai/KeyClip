@@ -71,28 +71,13 @@ struct ClipboardView: View {
     }
 
     private func row(for item: ClipboardItem) -> some View {
-        HStack {
-            Text(item.content)
-                .lineLimit(2)
-                .truncationMode(.tail)
-            Spacer()
-            Button {
-                toggleFavorite(item)
-            } label: {
-                Image(systemName: item.isFavorite ? "star.fill" : "star")
-                    .foregroundStyle(item.isFavorite ? .yellow : .secondary)
-            }
-            .buttonStyle(.plain)
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            select(item)
-        }
-        .contextMenu {
-            Button(item.isPinned ? "Unpin" : "Pin") { togglePin(item) }
-            Button(item.isFavorite ? "Remove Favorite" : "Add Favorite") { toggleFavorite(item) }
-            Button("Delete", role: .destructive) { delete(item) }
-        }
+        ClipboardRow(
+            item: item,
+            onSelect: { select(item) },
+            onToggleFavorite: { toggleFavorite(item) },
+            onTogglePin: { togglePin(item) },
+            onDelete: { delete(item) }
+        )
     }
 
     private func select(_ item: ClipboardItem) {
@@ -110,5 +95,40 @@ struct ClipboardView: View {
 
     private func delete(_ item: ClipboardItem) {
         modelContext.delete(item)
+    }
+}
+
+private struct ClipboardRow: View {
+    let item: ClipboardItem
+    let onSelect: () -> Void
+    let onToggleFavorite: () -> Void
+    let onTogglePin: () -> Void
+    let onDelete: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        HStack {
+            Text(item.content)
+                .lineLimit(2)
+                .truncationMode(.tail)
+            Spacer()
+            Button(action: onToggleFavorite) {
+                Image(systemName: item.isFavorite ? "star.fill" : "star")
+                    .foregroundStyle(item.isFavorite ? .yellow : .secondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, 2)
+        .padding(.horizontal, 4)
+        .background(isHovered ? Color.secondary.opacity(0.12) : Color.clear)
+        .cornerRadius(4)
+        .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
+        .onTapGesture { onSelect() }
+        .contextMenu {
+            Button(item.isPinned ? "Unpin" : "Pin", action: onTogglePin)
+            Button(item.isFavorite ? "Remove Favorite" : "Add Favorite", action: onToggleFavorite)
+            Button("Delete", role: .destructive, action: onDelete)
+        }
     }
 }

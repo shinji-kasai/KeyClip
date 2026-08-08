@@ -85,6 +85,32 @@ struct SnippetsView: View {
     }
 
     private func row(for snippet: Snippet) -> some View {
+        SnippetRow(
+            snippet: snippet,
+            onSelect: { copyToClipboard(snippet.content) },
+            onEdit: {
+                editingSnippet = snippet
+                isPresentingEditor = true
+            },
+            onDelete: { delete(snippet) }
+        )
+    }
+
+    private func delete(_ snippet: Snippet) {
+        modelContext.delete(snippet)
+        try? modelContext.save()
+        SnippetExpansionEngine.shared.refreshTriggers()
+    }
+}
+
+private struct SnippetRow: View {
+    let snippet: Snippet
+    let onSelect: () -> Void
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(snippet.trigger)
                 .font(.system(.body, design: .monospaced))
@@ -94,24 +120,17 @@ struct SnippetsView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 2)
+        .padding(.horizontal, 4)
+        .background(isHovered ? Color.secondary.opacity(0.12) : Color.clear)
+        .cornerRadius(4)
         .contentShape(Rectangle())
-        .onTapGesture {
-            copyToClipboard(snippet.content)
-        }
+        .onHover { isHovered = $0 }
+        .onTapGesture { onSelect() }
         .contextMenu {
-            Button("Edit") {
-                editingSnippet = snippet
-                isPresentingEditor = true
-            }
-            Button("Delete", role: .destructive) {
-                delete(snippet)
-            }
+            Button("Edit", action: onEdit)
+            Button("Delete", role: .destructive, action: onDelete)
         }
-    }
-
-    private func delete(_ snippet: Snippet) {
-        modelContext.delete(snippet)
-        try? modelContext.save()
-        SnippetExpansionEngine.shared.refreshTriggers()
     }
 }

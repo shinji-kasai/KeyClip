@@ -66,21 +66,9 @@ struct RootTabView: View {
     private var tabBar: some View {
         HStack(spacing: 4) {
             ForEach(visibleTabs) { tab in
-                Button {
+                TabBarButton(tab: tab, isSelected: selectedTab == tab) {
                     selectedTab = tab
-                } label: {
-                    VStack(spacing: 4) {
-                        Image(systemName: tab.systemImage)
-                        Text(tab.title)
-                            .font(.callout)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(selectedTab == tab ? Color.accentColor.opacity(0.15) : Color.clear)
-                    .cornerRadius(6)
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(8)
@@ -96,5 +84,35 @@ struct RootTabView: View {
         case .developer: PlaceholderView(tab: .developer)
         case .keyboard: PlaceholderView(tab: .keyboard)
         }
+    }
+}
+
+private struct TabBarButton: View {
+    let tab: FeatureTab
+    let isSelected: Bool
+    let action: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: tab.systemImage)
+                Text(tab.title)
+                    .font(.callout)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(backgroundColor)
+            .cornerRadius(6)
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+    }
+
+    private var backgroundColor: Color {
+        if isSelected { return Color.accentColor.opacity(0.15) }
+        if isHovered { return Color.secondary.opacity(0.12) }
+        return .clear
     }
 }
