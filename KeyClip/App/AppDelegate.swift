@@ -44,7 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(systemSymbolName: "keyboard", accessibilityDescription: "KeyClip")
+        item.button?.image = NSImage(systemSymbolName: "paperclip", accessibilityDescription: "KeyClip")
         item.button?.action = #selector(statusItemClicked)
         item.button?.target = self
         item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
