@@ -155,6 +155,18 @@ Repo: https://github.com/shinji-kasai/KeyClip (public).
     (`.secondary` instead of `theme.text`) — check for stray `.secondary`/
     `.primary` when adding theme support to a new view, grep won't catch it
     since those are valid modifiers, just the wrong color source.
+- **Update checking**: `KeyClip/Services/UpdateChecker.swift` is manual/
+  on-demand only — no Sparkle, no auto-download/install, deliberately (the
+  user chose this over full auto-update to avoid managing a private signing
+  key as a CI secret and generating an appcast feed per release). It hits
+  GitHub's Releases API directly and does simple numeric dot-component
+  version comparison against `CFBundleShortVersionString`. Two call sites
+  share it: `SettingsView`'s "Updates" section (inline `@State`-driven
+  status) and `AppDelegate.checkForUpdatesFromMenu()` (status-bar
+  right-click menu, result shown via `NSAlert` since that context has no
+  persistent view). If a real Sparkle-based auto-updater is ever wanted
+  instead, this is additive scope, not a replacement — the manual check
+  can stay as a fallback.
 
 ## Conventions
 

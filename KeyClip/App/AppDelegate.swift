@@ -99,6 +99,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showStatusMenu() {
         let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdatesFromMenu), keyEquivalent: ""))
+        menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit KeyClip", action: #selector(quitApp), keyEquivalent: "q"))
         statusItem?.menu = menu
         statusItem?.button?.performClick(nil)
@@ -110,6 +112,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func quitApp() {
         NSApp.terminate(nil)
+    }
+
+    @objc private func checkForUpdatesFromMenu() {
+        Task { @MainActor in
+            let result = await UpdateChecker.checkForUpdate()
+            let alert = NSAlert()
+            switch result {
+            case .upToDate:
+                alert.messageText = "You're up to date"
+                alert.informativeText = "KeyClip \(UpdateChecker.currentVersion()) is the latest version."
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+            case .updateAvailable(let info):
+                alert.messageText = "Update Available"
+                alert.informativeText = "KeyClip \(info.version) is available. You're on \(UpdateChecker.currentVersion())."
+                alert.addButton(withTitle: "View Release")
+                alert.addButton(withTitle: "Later")
+                if alert.runModal() == .alertFirstButtonReturn {
+                    NSWorkspace.shared.open(info.url)
+                }
+            case .failed:
+                alert.messageText = "Couldn't Check for Updates"
+                alert.informativeText = "Check your internet connection and try again."
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+            }
+        }
     }
 
     private func togglePanel() {

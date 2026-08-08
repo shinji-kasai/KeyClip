@@ -287,6 +287,21 @@ history if the user asks for it again; do not proactively rebuild.
       and was reported as hard to read. Plain `Toggle`/`Text` rows (which
       really do sit on `theme.background` with no competing native box)
       keep their theming.
+- [x] **Update checking** (`Services/UpdateChecker.swift`): manual/on-demand
+      only, not an auto-updater — queries GitHub's Releases API
+      (`/repos/shinji-kasai/KeyClip/releases/latest`), compares `tag_name`
+      against `CFBundleShortVersionString` via simple numeric
+      dot-component comparison, and if newer surfaces a link to the release
+      page. Chosen deliberately over full Sparkle-based auto-update: no
+      private signing key to manage as a CI secret, no appcast feed to
+      generate per release, no new dependency — at the cost of the user
+      having to manually download and drag-replace the app themselves.
+      Two entry points sharing the same service: **Settings → Updates**
+      (inline status: Check for Updates / Up to date / vX.Y.Z available with
+      a View Release button / Check failed with Retry) and **right-click the
+      menu bar icon → Check for Updates…** (same check, result shown via
+      `NSAlert` instead of inline state, since the status-bar menu has no
+      persistent view to show it in).
 - [ ] Per-tab jump hotkeys (Open Clipboard, Open Symbols, etc.) — the
       `HotKeyManager`/`HotKeyBinding` design already generalizes to this
 - [ ] Any remaining settings/UX polish

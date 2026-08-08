@@ -18,6 +18,8 @@ struct SettingsView: View {
 
     @State private var isAccessibilityTrusted = AccessibilityPermission.isTrusted(prompt: false)
     @State private var isInputMonitoringTrusted = InputMonitoringPermission.isTrusted
+    @State private var updateCheckResult: UpdateCheckResult?
+    @State private var isCheckingForUpdate = false
 
     var body: some View {
         Form {
@@ -105,6 +107,17 @@ struct SettingsView: View {
             } header: {
                 sectionHeader("Permissions")
             }
+
+            Section {
+                HStack {
+                    Text("Version \(UpdateChecker.currentVersion())")
+                        .foregroundStyle(theme.text)
+                    Spacer()
+                    updateStatusView
+                }
+            } header: {
+                sectionHeader("Updates")
+            }
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
@@ -143,6 +156,36 @@ struct SettingsView: View {
                 theme.apply(preset)
             }
         )
+    }
+
+    @ViewBuilder
+    private var updateStatusView: some View {
+        if isCheckingForUpdate {
+            ProgressView()
+                .controlSize(.small)
+        } else {
+            switch updateCheckResult {
+            case .none:
+                Button("Check for Updates") { checkForUpdate() }
+            case .upToDate:
+                Text("Up to date").foregroundStyle(theme.text.opacity(0.6))
+                Button("Check Again") { checkForUpdate() }
+            case .updateAvailable(let info):
+                Text("v\(info.version) available").foregroundStyle(.orange)
+                Button("View Release") { NSWorkspace.shared.open(info.url) }
+            case .failed:
+                Text("Check failed").foregroundStyle(.red)
+                Button("Retry") { checkForUpdate() }
+            }
+        }
+    }
+
+    private func checkForUpdate() {
+        isCheckingForUpdate = true
+        Task { @MainActor in
+            updateCheckResult = await UpdateChecker.checkForUpdate()
+            isCheckingForUpdate = false
+        }
     }
 
     private func requestInputMonitoringAccess() {
