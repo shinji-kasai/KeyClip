@@ -199,10 +199,19 @@ but empty/greyed-out.
       duplicate-trigger guard
 - [x] Settings: Input Monitoring permission status row + grant button
 
-### Milestone 3 — Symbols + Recently Used (not started)
-- [ ] Symbol categories (basic, math, science, Greek) + Unicode search
-- [ ] Recently-used section, ranked by usage frequency (not just recency)
-- [ ] Click-to-insert via existing `TextInjector`
+### Milestone 3 — Symbols + Recently Used ✅
+- [x] Built-in symbol catalog (`SymbolCatalog.swift`) grouped into categories
+      (Marks, Arrows, Math, Science, Greek) — reference data, not user
+      content, so it isn't a SwiftData model
+- [x] Per-symbol favorite/usage state (`SymbolUsage` model, keyed by the
+      character itself, created lazily on first favorite/use)
+- [x] Favorites section + Recently Used section (ranked by usage frequency,
+      ties broken by recency — not just most-recent) above the category list
+- [x] Categories are collapsible/expandable (chevron-toggled disclosure);
+      search matches by name (e.g. "arrow") or the literal character and
+      auto-expands matches regardless of collapsed state
+- [x] Click-to-copy via the same `copyToClipboard` pasteboard mechanism as
+      Clipboard/Snippets, hover highlighting, right-click to favorite
 
 ### Milestone 4 — Developer (not started)
 - [ ] Brackets/operators/SQL/Python/JS keyword palette, click-to-insert

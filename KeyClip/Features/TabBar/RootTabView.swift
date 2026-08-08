@@ -80,7 +80,7 @@ struct RootTabView: View {
         case .clipboard: ClipboardView()
         case .settings: SettingsView()
         case .snippets: SnippetsView()
-        case .symbols: PlaceholderView(tab: .symbols)
+        case .symbols: SymbolsView()
         case .developer: PlaceholderView(tab: .developer)
         case .keyboard: PlaceholderView(tab: .keyboard)
         }
