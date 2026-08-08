@@ -31,6 +31,7 @@ struct RootTabView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            header
             tabBar
             Divider()
             content
@@ -43,22 +44,44 @@ struct RootTabView: View {
         }
     }
 
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text("KeyClip")
+                .font(.headline)
+            Text(appVersion)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 10)
+        .padding(.bottom, 4)
+    }
+
+    private var appVersion: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        return "v\(version)"
+    }
+
     private var tabBar: some View {
         HStack(spacing: 4) {
             ForEach(visibleTabs) { tab in
                 Button {
                     selectedTab = tab
                 } label: {
-                    Label(tab.title, systemImage: tab.systemImage)
-                        .labelStyle(.titleAndIcon)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(selectedTab == tab ? Color.accentColor.opacity(0.15) : Color.clear)
-                        .cornerRadius(6)
+                    VStack(spacing: 4) {
+                        Image(systemName: tab.systemImage)
+                        Text(tab.title)
+                            .font(.callout)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(selectedTab == tab ? Color.accentColor.opacity(0.15) : Color.clear)
+                    .cornerRadius(6)
                 }
                 .buttonStyle(.plain)
             }
-            Spacer()
         }
         .padding(8)
     }
