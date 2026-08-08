@@ -7,6 +7,7 @@ import SwiftUI
 import SwiftData
 
 struct SnippetsView: View {
+    @EnvironmentObject private var theme: ThemeStore
     @Environment(\.copyToClipboard) private var copyToClipboard
     @Environment(\.modelContext) private var modelContext
     @Query(sort: [SortDescriptor(\Snippet.category), SortDescriptor(\Snippet.trigger)]) private var snippets: [Snippet]
@@ -82,6 +83,8 @@ struct SnippetsView: View {
             }
         }
         .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(theme.background)
     }
 
     private func row(for snippet: Snippet) -> some View {
@@ -94,6 +97,7 @@ struct SnippetsView: View {
             },
             onDelete: { delete(snippet) }
         )
+        .listRowBackground(Color.clear)
     }
 
     private func delete(_ snippet: Snippet) {
@@ -104,6 +108,7 @@ struct SnippetsView: View {
 }
 
 private struct SnippetRow: View {
+    @EnvironmentObject private var theme: ThemeStore
     let snippet: Snippet
     let onSelect: () -> Void
     let onEdit: () -> Void
@@ -115,15 +120,16 @@ private struct SnippetRow: View {
             Text(snippet.trigger)
                 .font(.system(.body, design: .monospaced))
                 .fontWeight(.semibold)
+                .foregroundStyle(theme.text)
             Text(snippet.content)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.text.opacity(0.6))
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 2)
         .padding(.horizontal, 4)
-        .background(isHovered ? Color.secondary.opacity(0.12) : Color.clear)
+        .background(isHovered ? theme.hover : Color.clear)
         .cornerRadius(4)
         .contentShape(Rectangle())
         .onHover { isHovered = $0 }

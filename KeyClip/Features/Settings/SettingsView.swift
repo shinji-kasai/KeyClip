@@ -7,6 +7,7 @@ import SwiftUI
 import SwiftData
 
 struct SettingsView: View {
+    @EnvironmentObject private var theme: ThemeStore
     @Environment(\.modelContext) private var modelContext
     @AppStorage(FeatureTab.clipboard.visibilityDefaultsKey) private var clipboardEnabled = true
     @AppStorage(FeatureTab.snippets.visibilityDefaultsKey) private var snippetsEnabled = true
@@ -34,6 +35,31 @@ struct SettingsView: View {
                         .frame(width: 140, height: 28)
                 }
                 Toggle("Double-⌘ to Open Panel", isOn: $doubleCommandTapEnabled)
+            }
+
+            Section("Appearance") {
+                Picker("Theme", selection: presetBinding) {
+                    ForEach(ThemePresets.all) { preset in
+                        Text(preset.name).tag(preset.id)
+                    }
+                    Text("Custom").tag(ThemePresets.customID)
+                }
+                ColorPicker("Background", selection: Binding(
+                    get: { theme.background },
+                    set: { theme.setBackground($0) }
+                ))
+                ColorPicker("Text", selection: Binding(
+                    get: { theme.text },
+                    set: { theme.setText($0) }
+                ))
+                ColorPicker("Hover Highlight", selection: Binding(
+                    get: { theme.hover },
+                    set: { theme.setHover($0) }
+                ))
+                ColorPicker("Selected Highlight", selection: Binding(
+                    get: { theme.selected },
+                    set: { theme.setSelected($0) }
+                ))
             }
 
             Section("Permissions") {
@@ -76,6 +102,16 @@ struct SettingsView: View {
             isAccessibilityTrusted = AccessibilityPermission.isTrusted(prompt: false)
             isInputMonitoringTrusted = InputMonitoringPermission.isTrusted
         }
+    }
+
+    private var presetBinding: Binding<String> {
+        Binding(
+            get: { theme.presetID },
+            set: { newID in
+                guard let preset = ThemePresets.all.first(where: { $0.id == newID }) else { return }
+                theme.apply(preset)
+            }
+        )
     }
 
     private func requestInputMonitoringAccess() {

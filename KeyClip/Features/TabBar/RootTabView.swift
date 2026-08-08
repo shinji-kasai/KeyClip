@@ -6,6 +6,7 @@
 import SwiftUI
 
 struct RootTabView: View {
+    @EnvironmentObject private var theme: ThemeStore
     @AppStorage(FeatureTab.clipboard.visibilityDefaultsKey) private var clipboardEnabled = true
     @AppStorage(FeatureTab.snippets.visibilityDefaultsKey) private var snippetsEnabled = true
     @AppStorage(FeatureTab.symbols.visibilityDefaultsKey) private var symbolsEnabled = true
@@ -33,6 +34,7 @@ struct RootTabView: View {
             content
         }
         .frame(minWidth: 480, minHeight: 600)
+        .background(theme.background)
         .onChange(of: visibleTabs) { _, newValue in
             if !newValue.contains(selectedTab) {
                 selectedTab = newValue.first ?? .settings
@@ -44,9 +46,10 @@ struct RootTabView: View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text("KeyClip")
                 .font(.headline)
+                .foregroundStyle(theme.text)
             Text(appVersion)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.text.opacity(0.6))
             Spacer()
         }
         .padding(.horizontal, 12)
@@ -82,6 +85,7 @@ struct RootTabView: View {
 }
 
 private struct TabBarButton: View {
+    @EnvironmentObject private var theme: ThemeStore
     let tab: FeatureTab
     let isSelected: Bool
     let action: () -> Void
@@ -94,6 +98,7 @@ private struct TabBarButton: View {
                 Text(tab.title)
                     .font(.callout)
             }
+            .foregroundStyle(theme.text)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
@@ -105,8 +110,8 @@ private struct TabBarButton: View {
     }
 
     private var backgroundColor: Color {
-        if isSelected { return Color.accentColor.opacity(0.15) }
-        if isHovered { return Color.secondary.opacity(0.12) }
+        if isSelected { return theme.selected }
+        if isHovered { return theme.hover }
         return .clear
     }
 }

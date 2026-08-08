@@ -7,6 +7,7 @@ import SwiftUI
 import SwiftData
 
 struct ClipboardView: View {
+    @EnvironmentObject private var theme: ThemeStore
     @Environment(\.copyToClipboard) private var copyToClipboard
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \ClipboardItem.createdAt, order: .reverse) private var items: [ClipboardItem]
@@ -68,6 +69,8 @@ struct ClipboardView: View {
             }
         }
         .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(theme.background)
     }
 
     private func row(for item: ClipboardItem) -> some View {
@@ -78,6 +81,7 @@ struct ClipboardView: View {
             onTogglePin: { togglePin(item) },
             onDelete: { delete(item) }
         )
+        .listRowBackground(Color.clear)
     }
 
     private func select(_ item: ClipboardItem) {
@@ -99,6 +103,7 @@ struct ClipboardView: View {
 }
 
 private struct ClipboardRow: View {
+    @EnvironmentObject private var theme: ThemeStore
     let item: ClipboardItem
     let onSelect: () -> Void
     let onToggleFavorite: () -> Void
@@ -111,16 +116,17 @@ private struct ClipboardRow: View {
             Text(item.content)
                 .lineLimit(2)
                 .truncationMode(.tail)
+                .foregroundStyle(theme.text)
             Spacer()
             Button(action: onToggleFavorite) {
                 Image(systemName: item.isFavorite ? "star.fill" : "star")
-                    .foregroundStyle(item.isFavorite ? .yellow : .secondary)
+                    .foregroundStyle(item.isFavorite ? .yellow : theme.text.opacity(0.5))
             }
             .buttonStyle(.plain)
         }
         .padding(.vertical, 2)
         .padding(.horizontal, 4)
-        .background(isHovered ? Color.secondary.opacity(0.12) : Color.clear)
+        .background(isHovered ? theme.hover : Color.clear)
         .cornerRadius(4)
         .contentShape(Rectangle())
         .onHover { isHovered = $0 }

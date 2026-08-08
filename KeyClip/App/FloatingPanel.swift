@@ -34,6 +34,7 @@ final class FloatingPanel: NSPanel {
             .modelContainer(modelContainer)
             .environment(\.injectText, inject)
             .environment(\.copyToClipboard, copyToClipboard)
+            .environmentObject(ThemeStore.shared)
         contentView = NSHostingView(rootView: rootView)
     }
 

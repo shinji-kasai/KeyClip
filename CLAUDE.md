@@ -118,6 +118,22 @@ Repo: https://github.com/shinji-kasai/KeyClip (public).
   `Settings` is the only case that's always visible. `RootTabView`
   filters+switches on it and shows a header ("KeyClip vX.Y") above the tab
   bar.
+- **Theming**: `KeyClip/Services/ThemeStore.swift` is an `ObservableObject`
+  singleton (`ThemeStore.shared`) holding four live colors — `background`,
+  `text`, `hover`, `selected` — injected once via
+  `.environmentObject(ThemeStore.shared)` in `FloatingPanel`, so any view can
+  just declare `@EnvironmentObject private var theme: ThemeStore` rather than
+  threading it through. 5 built-in presets (`ThemePresets.all`); calling any
+  `theme.setX(_:)` switches to a "custom" theme seeded from the *current*
+  colors first (`markCustom()`), so changing one color doesn't blank out the
+  other three. Colors persist as JSON-encoded RGBA component arrays in
+  `UserDefaults`, not `@AppStorage` directly — `Color` isn't
+  `RawRepresentable`, so `ThemeStore` does its own encode/decode
+  (`saveColor`/`loadColor`) rather than trying to force it through
+  `@AppStorage`. Applied to the tab bar, panel background, and
+  Clipboard/Snippets/Symbols row text/hover — deliberately *not* applied to
+  Settings' own `Form` controls, which keep native macOS grouped-form
+  styling.
 
 ## Conventions
 

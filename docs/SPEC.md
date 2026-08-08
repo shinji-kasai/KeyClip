@@ -245,6 +245,17 @@ history if the user asks for it again; do not proactively rebuild.
       on `.flagsChanged` instead — gated by the same Accessibility trust
       `TextInjector` already needs, not a new permission category. Toggle in
       Settings → Shortcuts, default on.
+- [x] Theming (`Services/ThemeStore.swift`): 5 built-in presets (System,
+      Light, Dark, Ocean, Forest) plus per-element custom colors — Background,
+      Text, Hover Highlight, Selected Highlight — via `ColorPicker`s in
+      Settings → Appearance. Editing any individual color switches to (and
+      persists as) a "custom" theme seeded from whichever preset was active,
+      so the other three colors don't reset. Shared app-wide via
+      `.environmentObject(ThemeStore.shared)` injected once in
+      `FloatingPanel`; applied to the tab bar, panel background, and the
+      Clipboard/Snippets/Symbols row text + hover colors. Settings' own Form
+      controls keep native macOS styling (not themed) since re-skinning
+      system form chrome looked inconsistent, not because it was out of scope.
 - [ ] Per-tab jump hotkeys (Open Clipboard, Open Symbols, etc.) — the
       `HotKeyManager`/`HotKeyBinding` design already generalizes to this
 - [ ] Any remaining settings/UX polish

@@ -7,6 +7,7 @@ import SwiftUI
 import SwiftData
 
 struct SymbolsView: View {
+    @EnvironmentObject private var theme: ThemeStore
     @Environment(\.copyToClipboard) private var copyToClipboard
     @Environment(\.modelContext) private var modelContext
     @Query private var usageRecords: [SymbolUsage]
@@ -67,6 +68,7 @@ struct SymbolsView: View {
                 .padding(12)
             }
         }
+        .background(theme.background)
     }
 
     private var searchField: some View {
@@ -83,7 +85,7 @@ struct SymbolsView: View {
             Text(title)
                 .font(.caption)
                 .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.text.opacity(0.6))
             grid(for: items)
         }
     }
@@ -96,11 +98,11 @@ struct SymbolsView: View {
                 HStack(spacing: 4) {
                     Image(systemName: isExpanded(category) ? "chevron.down" : "chevron.right")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(theme.text.opacity(0.6))
                     Text(category.rawValue)
                         .font(.caption)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(theme.text.opacity(0.6))
                     Spacer()
                 }
                 .contentShape(Rectangle())
@@ -162,6 +164,7 @@ struct SymbolsView: View {
 }
 
 private struct SymbolCell: View {
+    @EnvironmentObject private var theme: ThemeStore
     let entry: SymbolEntry
     let isFavorite: Bool
     let onSelect: () -> Void
@@ -171,8 +174,9 @@ private struct SymbolCell: View {
     var body: some View {
         Text(entry.character)
             .font(.system(size: 18))
+            .foregroundStyle(theme.text)
             .frame(width: 36, height: 36)
-            .background(isHovered ? Color.secondary.opacity(0.15) : Color.clear)
+            .background(isHovered ? theme.hover : Color.clear)
             .cornerRadius(6)
             .overlay(alignment: .topTrailing) {
                 if isFavorite {
