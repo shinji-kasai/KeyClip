@@ -12,9 +12,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var clipboardMonitor: ClipboardMonitor?
     private var previouslyFrontmostApp: NSRunningApplication?
 
+    /// KeyClip is unsandboxed, so — unlike a sandboxed app, which gets its own
+    /// isolated Application Support directory for free — `Application Support`
+    /// here is shared with every other unsandboxed app on the machine. An
+    /// unnamed `ModelContainer(for:)` defaults to a generic `default.store`
+    /// filename with no app-specific scoping, so it can collide with any other
+    /// unsandboxed SwiftData app's default store. Must use an explicit,
+    /// app-scoped store location instead.
     let modelContainer: ModelContainer = {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let directory = appSupport.appendingPathComponent("KeyClip", isDirectory: true)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let storeURL = directory.appendingPathComponent("KeyClip.store")
+        let configuration = ModelConfiguration(url: storeURL)
         do {
-            return try ModelContainer(for: ClipboardItem.self)
+            return try ModelContainer(for: ClipboardItem.self, configurations: configuration)
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }
