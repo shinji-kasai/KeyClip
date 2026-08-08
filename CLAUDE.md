@@ -12,9 +12,10 @@ product spec, fixed constraints, and the milestone roadmap live in
 `docs/SPEC.md` — read that before assuming a feature is missing or before
 re-deriving scope in conversation.
 
-**Current status: Milestones 1 (Foundation + Clipboard), 2 (Snippets), 3
-(Symbols), and 4 (Developer) are complete.** Keyboard is still a wired-in
-placeholder tab — see `docs/SPEC.md`'s milestone checklist for what's next.
+**Current status: Milestones 1–5 are complete** (Foundation + Clipboard,
+Snippets, Symbols, Developer, Keyboard + width conversion) — all six tabs
+have real content. Remaining scope (per-tab jump hotkeys, polish) is
+Milestone 6 in `docs/SPEC.md`'s checklist.
 
 Repo: https://github.com/shinji-kasai/KeyClip (public).
 

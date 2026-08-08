@@ -226,12 +226,28 @@ but empty/greyed-out.
 - [x] Click-to-copy via the same `copyToClipboard` mechanism, hover
       highlighting on each chip
 
-### Milestone 5 — Keyboard + Japanese width conversion (not started)
-- [ ] On-screen virtual keyboard UI (configurable layout)
-- [ ] Per-category (Numbers/Katakana/Alphabet/Symbols/Space) full/half-width
-      settings UI
-- [ ] Width-conversion logic applied to virtual-keyboard output before
-      injection
+### Milestone 5 — Keyboard + Japanese width conversion ✅
+- [x] On-screen virtual keyboard (`KeyboardView.swift`): digit row + QWERTY
+      rows + shift/space/backspace, appending into an editable compose field
+      rather than a real IME (per the Milestone-1 constraint)
+- [x] The compose field is a normal editable `TextField`, not
+      keyboard-only-input — pasting real Japanese text (e.g. the spec's own
+      "１２３ＡＢＣ　カタカナ" example) works too, so this is a general
+      width-conversion utility, not limited to what the virtual keys can type
+- [x] Settings → "Input Conversion": a Full-width/Half-width picker per
+      category (Numbers/Katakana/Alphabet/Symbols/Space), `@AppStorage`-backed
+- [x] `WidthConverter` (`Services/WidthConverter.swift`): groups the input
+      into contiguous same-category runs and transforms each run as a whole
+      via `String.applyingTransform(.fullwidthToHalfwidth, reverse:)` — a
+      character-at-a-time approach was tried first and is specifically wrong
+      for voiced/semi-voiced katakana (ｶﾞ ⇄ ガ), since a half-width kana base
+      + its sound mark is one `Character` with 2 Unicode scalars; classify by
+      the base scalar, not `scalars.count == 1`, or the mark gets silently
+      skipped. Verified against both of the spec's own worked examples plus
+      a voiced-katakana round trip before shipping.
+- [x] Live converted-text preview below the compose field; Copy button
+      copies the *converted* text via the existing `copyToClipboard`
+      mechanism
 
 ### Milestone 6 — Remaining shortcuts + polish (not started)
 - [ ] Per-tab jump hotkeys (Open Clipboard, Open Symbols, etc.) — the

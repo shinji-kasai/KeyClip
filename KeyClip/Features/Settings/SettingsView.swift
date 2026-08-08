@@ -16,6 +16,12 @@ struct SettingsView: View {
 
     @AppStorage(HotKeyBinding.openPanelDefaultsKey) private var openPanelBinding = HotKeyBinding.defaultOpenPanel
 
+    @AppStorage(WidthConversionCategory.numbers.defaultsKey) private var numbersMode: WidthMode = .halfWidth
+    @AppStorage(WidthConversionCategory.katakana.defaultsKey) private var katakanaMode: WidthMode = .halfWidth
+    @AppStorage(WidthConversionCategory.alphabet.defaultsKey) private var alphabetMode: WidthMode = .halfWidth
+    @AppStorage(WidthConversionCategory.symbols.defaultsKey) private var symbolsMode: WidthMode = .halfWidth
+    @AppStorage(WidthConversionCategory.space.defaultsKey) private var spaceMode: WidthMode = .halfWidth
+
     @State private var isAccessibilityTrusted = AccessibilityPermission.isTrusted(prompt: false)
     @State private var isInputMonitoringTrusted = InputMonitoringPermission.isTrusted
 
@@ -36,6 +42,14 @@ struct SettingsView: View {
                     HotKeyRecorderView(binding: $openPanelBinding)
                         .frame(width: 140, height: 28)
                 }
+            }
+
+            Section("Input Conversion") {
+                widthPicker("Numbers", selection: $numbersMode)
+                widthPicker("Katakana", selection: $katakanaMode)
+                widthPicker("Alphabet", selection: $alphabetMode)
+                widthPicker("Symbols", selection: $symbolsMode)
+                widthPicker("Space", selection: $spaceMode)
             }
 
             Section("Permissions") {
@@ -70,6 +84,14 @@ struct SettingsView: View {
         .onAppear {
             isAccessibilityTrusted = AccessibilityPermission.isTrusted(prompt: false)
             isInputMonitoringTrusted = InputMonitoringPermission.isTrusted
+        }
+    }
+
+    private func widthPicker(_ title: String, selection: Binding<WidthMode>) -> some View {
+        Picker(title, selection: selection) {
+            ForEach(WidthMode.allCases) { mode in
+                Text(mode.label).tag(mode)
+            }
         }
     }
 

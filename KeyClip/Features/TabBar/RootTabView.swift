@@ -82,7 +82,7 @@ struct RootTabView: View {
         case .snippets: SnippetsView()
         case .symbols: SymbolsView()
         case .developer: DeveloperView()
-        case .keyboard: PlaceholderView(tab: .keyboard)
+        case .keyboard: KeyboardView()
         }
     }
 }
