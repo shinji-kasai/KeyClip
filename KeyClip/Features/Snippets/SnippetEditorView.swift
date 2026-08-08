@@ -53,7 +53,7 @@ struct SnippetEditorView: View {
                 Button("Cancel") { dismiss() }
                 Button("Save") { save() }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(trigger.trimmingCharacters(in: .whitespaces).isEmpty || content.isEmpty)
+                    .disabled(trigger.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
         .padding(20)
