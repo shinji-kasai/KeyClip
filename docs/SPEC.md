@@ -174,20 +174,30 @@ but empty/greyed-out.
       by all tabs
 - [x] SwiftData `ClipboardItem` model + `ClipboardMonitor` (pasteboard
       polling, dedup, 200-item prune, pin/favorite exempt from pruning)
-- [x] Clipboard tab: search, history list, favorites section, click-to-insert
+- [x] Clipboard tab: search, history list, favorites section, click-to-copy
+      (writes to the system pasteboard and reactivates the app you were in,
+      ready for ⌘V — changed from an earlier auto-typed-injection approach
+      for reliability; see `copyToClipboard` in `InjectionEnvironment.swift`)
 - [x] Settings tab: tab-visibility toggles, hotkey recorder, accessibility
       status banner
 - [x] Snippets/Symbols/Developer/Keyboard wired in as placeholder tabs
       (fully plugged into the visibility-toggle system, no real content yet)
 - [x] Local git repo + `.gitignore` + `CLAUDE.md`/`docs/SPEC.md`
 
-### Milestone 2 — Snippets (not started)
-- [ ] Snippet data model + category tree (General/Developer/... as in §3)
-- [ ] Typing-trigger expansion engine (e.g. `;email` → canned text) — this
-      needs a `CGEventTap` keystroke *monitor* (distinct from the injection
-      mechanism), which itself needs Accessibility trust already granted
-- [ ] Snippets tab UI: browse by category, click-to-insert, add/edit/delete,
-      register custom triggers
+### Milestone 2 — Snippets ✅
+- [x] Snippet data model (`trigger`, `content`, flat `category` string rather
+      than a fully editable nested tree — kept simple; see Settings tab CRUD)
+- [x] Typing-trigger expansion engine (`SnippetExpansionEngine`): a
+      listen-only `CGEventTap` (gated by the separate **Input Monitoring**
+      TCC category, not Accessibility) watches typed characters system-wide,
+      matches a rolling buffer against registered triggers, then deletes the
+      typed trigger and types the expansion via `TextInjector`. Synthetic
+      events are tagged (`TextInjector.syntheticEventMarker`) so the engine
+      ignores its own output instead of feeding it back into the buffer.
+- [x] Snippets tab UI: grouped-by-category list, search, click-to-copy
+      (same pasteboard mechanism as Clipboard), add/edit/delete via a sheet,
+      duplicate-trigger guard
+- [x] Settings: Input Monitoring permission status row + grant button
 
 ### Milestone 3 — Symbols + Recently Used (not started)
 - [ ] Symbol categories (basic, math, science, Greek) + Unicode search

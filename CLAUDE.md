@@ -6,14 +6,17 @@ KeyClip is a macOS menu-bar keyboard/clipboard utility. It lives in the menu
 bar (no Dock icon) and is summoned via a global hotkey into a floating panel
 overlaid on top of whatever app is frontmost — think Raycast/Alfred/Maccy.
 The panel hosts a tab bar (Clipboard, Snippets, Symbols, Developer, Keyboard,
-Settings); clicking content in any tab types/inserts it into the app the user
-was just in. Full product spec, fixed constraints, and the milestone roadmap
-live in `docs/SPEC.md` — read that before assuming a feature is missing or
-before re-deriving scope in conversation.
+Settings); clicking content in Clipboard/Snippets copies it to the system
+pasteboard and hands focus back to the app you were in, ready for ⌘V. Full
+product spec, fixed constraints, and the milestone roadmap live in
+`docs/SPEC.md` — read that before assuming a feature is missing or before
+re-deriving scope in conversation.
 
-**Current status: Milestone 1 (Foundation + Clipboard) is complete.**
-Snippets/Symbols/Developer/Keyboard are wired-in placeholder tabs — see
-`docs/SPEC.md`'s milestone checklist for what's next.
+**Current status: Milestones 1 (Foundation + Clipboard) and 2 (Snippets) are
+complete.** Symbols/Developer/Keyboard are still wired-in placeholder tabs —
+see `docs/SPEC.md`'s milestone checklist for what's next.
+
+Repo: https://github.com/shinji-kasai/KeyClip (public).
 
 ## Architecture
 
@@ -25,29 +28,65 @@ Snippets/Symbols/Developer/Keyboard are wired-in placeholder tabs — see
   `level = .floating`) hosting a SwiftUI `NSHostingView`. **Deliberately not**
   SwiftUI's `MenuBarExtra` — that scene type has no supported way to be shown
   imperatively from a global-hotkey handler, only from clicking its own status
-  item.
+  item. Overrides `resignKey()` to auto-hide (`orderOut`) whenever it loses
+  key status — since it's the app's only window, losing key status always
+  means the user clicked another app, the desktop, or the menu bar.
+- **Status item**: right-click shows a "Quit KeyClip" menu (left-click still
+  toggles the panel) — an accessory app has no Dock icon/app menu, so this is
+  the only quit path. A stale instance left running from a prior Xcode Run
+  can lock the built binary and cause `CodeSign` failures on the next build;
+  quit it from here (or Activity Monitor) if that happens.
 - **Global hotkeys**: `KeyClip/Services/HotKeyManager.swift` wraps Carbon's
   `RegisterEventHotKey`/`InstallEventHandler`. Chosen over a `CGEventTap`
   specifically because a tap needs Accessibility trust just to register —
   chicken-and-egg for an app that isn't trusted yet. `HotKeyBinding` is
   `Codable`/`RawRepresentable` (JSON-string-backed) so it works directly as an
   `@AppStorage` value.
-- **Text injection**: `KeyClip/Services/TextInjector.swift` reactivates the
-  previously-frontmost app (captured by `AppDelegate` before the panel is
-  shown) and posts `CGEvent`s built via `keyboardSetUnicodeString`, chunked
-  into ~20 UTF-16 units per event pair (the API silently truncates longer
-  strings). No-ops if Accessibility isn't trusted
-  (`KeyClip/Services/AccessibilityPermission.swift` gates this). This service
-  is shared by every tab that inserts content — not Clipboard-specific.
+- **Text injection vs. keystroke listening** — two distinct mechanisms, two
+  distinct TCC permission categories:
+  - `KeyClip/Services/TextInjector.swift` *posts* synthetic `CGEvent`s (gated
+    by **Accessibility** trust, `AccessibilityPermission.swift`). `inject(_:into:)`
+    reactivates a specific app first (used by the panel's direct-insert flows,
+    not currently wired to any tab — see below); `typeText`/`deleteBackward`
+    post directly with no reactivation step (used by the snippet expansion
+    engine, where focus is already correct). All posted events are tagged
+    with `TextInjector.syntheticEventMarker` via the `eventSourceUserData`
+    field so listeners can recognize and ignore KeyClip's own output.
+  - `KeyClip/Services/SnippetExpansionEngine.swift` *listens* system-wide via
+    a listen-only `CGEventTap` (gated by the separate **Input Monitoring**
+    category, `InputMonitoringPermission.swift` — `IOHIDCheckAccess`/
+    `IOHIDRequestAccess`, not `AXIsProcessTrustedWithOptions`). It keeps a
+    ~40-character rolling buffer of typed text, checks it against registered
+    snippet triggers on every keystroke, and on a match deletes the trigger
+    and types the expansion via `TextInjector`. It skips any event tagged
+    with `syntheticEventMarker` so its own output doesn't feed back into the
+    buffer or re-trigger.
+  - **Clipboard and Snippets currently use neither for their click action** —
+    clicking an item calls the `copyToClipboard` environment closure
+    (`Features/Shared/InjectionEnvironment.swift`), which writes to
+    `NSPasteboard.general` and reactivates the previously-frontmost app so
+    the user presses ⌘V themselves. This replaced an earlier
+    auto-typed-injection approach: copy+paste is faster, doesn't mangle long
+    or unicode-heavy text, and needs no Accessibility permission for that
+    path. `injectText`/`TextInjector.inject` stays available in the
+    environment for Symbols/Developer/Keyboard, where direct insertion may
+    still make sense when those are built.
 - **Persistence**:
-  - `ClipboardItem` (`KeyClip/Models/ClipboardItem.swift`) is a SwiftData
-    `@Model`. Favorites/pinned are flags on the same row (not a separate
+  - `ClipboardItem` and `Snippet` (`KeyClip/Models/`) are SwiftData `@Model`s.
+    Clipboard favorites/pinned are flags on the same row (not a separate
     entity) to avoid duplicate-content rows; pruning explicitly skips
-    pinned/favorite rows.
-  - The `ModelContainer` is built once in `AppDelegate` and injected via
-    `.modelContainer(container)` on the view passed into `NSHostingView` —
-    there's no SwiftUI `Scene` hosting the UI, so the `.modelContainer(for:)`
-    scene modifier isn't available.
+    pinned/favorite rows. `Snippet.category` is a flat string (not a fully
+    editable nested tree) — the Snippets tab groups rows by this value.
+  - The `ModelContainer` is built once in `AppDelegate` with an **explicit**
+    store URL (`~/Library/Application Support/KeyClip/KeyClip.store`) and
+    injected via `.modelContainer(container)` on the view passed into
+    `NSHostingView`. Do not switch this back to an unnamed
+    `ModelContainer(for:)` — KeyClip is unsandboxed, so `Application Support`
+    is shared with every other unsandboxed app on the machine, and the
+    unnamed default resolves to a generic `default.store` filename with no
+    per-app scoping. That caused a real data-loss bug (a favorited item got
+    reset) from a collision with another unsandboxed SwiftData app on the
+    same machine.
   - `ClipboardMonitor` polls `NSPasteboard.general.changeCount` every 0.5s
     (macOS has no push-based clipboard-change API), dedups by bumping
     `createdAt` on identical content, and prunes non-pinned/non-favorite
@@ -56,10 +95,12 @@ Snippets/Symbols/Developer/Keyboard are wired-in placeholder tabs — see
     `@AppStorage` — no separate settings object; `RootTabView` reads the
     visibility flags reactively to filter the tab bar live.
 - **Tabs**: `FeatureTab` (`KeyClip/Features/TabBar/FeatureTab.swift`) is the
-  single source of truth for tab identity/icon/visibility key. `Settings` is
-  the only case that's always visible. `RootTabView` filters+switches on it;
-  adding a real view for a currently-placeholder tab is a one-line swap in
-  that switch statement.
+  single source of truth for tab identity/icon/visibility key (`title` is the
+  short label shown in the tab bar — e.g. "Clip"/"Dev" — not necessarily the
+  full feature name). `Settings` is the only case that's always visible.
+  `RootTabView` filters+switches on it and shows a header ("KeyClip vX.Y")
+  above the tab bar; adding a real view for a currently-placeholder tab
+  (Symbols/Developer/Keyboard) is a one-line swap in that switch statement.
 
 ## Conventions
 
@@ -89,7 +130,10 @@ Snippets/Symbols/Developer/Keyboard are wired-in placeholder tabs — see
 3. Build & Run. Confirm no Dock icon appears and no window auto-opens — a
    menu bar icon should appear instead.
 4. Press ⌘⇧V (default) to summon the panel. In Settings, grant Accessibility
-   access via the "Open System Settings" button, enable KeyClip, come back.
+   access via the "Open System Settings" button (needed for future
+   direct-insert tabs and for snippet expansion's substitution step) and
+   Input Monitoring access via "Grant Access" (needed for snippet
+   typing-triggers to be observed at all).
 5. To run it like a normal app instead of from Xcode: Product → Show Build
    Folder in Finder → `Build/Products/Release/KeyClip.app` (Release build) →
    copy to `/Applications`. First launch will show Gatekeeper's "unidentified

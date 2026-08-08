@@ -1,0 +1,117 @@
+//
+//  SnippetsView.swift
+//  KeyClip
+//
+
+import SwiftUI
+import SwiftData
+
+struct SnippetsView: View {
+    @Environment(\.copyToClipboard) private var copyToClipboard
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: [SortDescriptor(\Snippet.category), SortDescriptor(\Snippet.trigger)]) private var snippets: [Snippet]
+    @State private var searchText = ""
+    @State private var editingSnippet: Snippet?
+    @State private var isPresentingEditor = false
+
+    private var filtered: [Snippet] {
+        guard !searchText.isEmpty else { return snippets }
+        return snippets.filter {
+            $0.trigger.localizedCaseInsensitiveContains(searchText) ||
+            $0.content.localizedCaseInsensitiveContains(searchText) ||
+            $0.category.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    private var grouped: [(category: String, items: [Snippet])] {
+        let groups = Dictionary(grouping: filtered, by: { $0.category })
+        return groups.keys.sorted().map { key in
+            (category: key, items: groups[key]!.sorted { $0.trigger < $1.trigger })
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            Divider()
+            if snippets.isEmpty {
+                emptyState
+            } else {
+                list
+            }
+        }
+        .sheet(isPresented: $isPresentingEditor) {
+            SnippetEditorView(editing: editingSnippet)
+        }
+    }
+
+    private var header: some View {
+        HStack {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            TextField("Search...", text: $searchText)
+                .textFieldStyle(.plain)
+            Spacer()
+            Button {
+                editingSnippet = nil
+                isPresentingEditor = true
+            } label: {
+                Image(systemName: "plus.circle.fill")
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(8)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "text.badge.plus")
+                .font(.system(size: 32))
+                .foregroundStyle(.secondary)
+            Text("No snippets yet — add one to get started")
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var list: some View {
+        List {
+            ForEach(grouped, id: \.category) { group in
+                Section(group.category) {
+                    ForEach(group.items) { row(for: $0) }
+                }
+            }
+        }
+        .listStyle(.plain)
+    }
+
+    private func row(for snippet: Snippet) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(snippet.trigger)
+                .font(.system(.body, design: .monospaced))
+                .fontWeight(.semibold)
+            Text(snippet.content)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            copyToClipboard(snippet.content)
+        }
+        .contextMenu {
+            Button("Edit") {
+                editingSnippet = snippet
+                isPresentingEditor = true
+            }
+            Button("Delete", role: .destructive) {
+                delete(snippet)
+            }
+        }
+    }
+
+    private func delete(_ snippet: Snippet) {
+        modelContext.delete(snippet)
+        try? modelContext.save()
+        SnippetExpansionEngine.shared.refreshTriggers()
+    }
+}

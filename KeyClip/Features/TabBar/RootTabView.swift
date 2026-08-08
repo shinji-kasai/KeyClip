@@ -91,7 +91,7 @@ struct RootTabView: View {
         switch selectedTab {
         case .clipboard: ClipboardView()
         case .settings: SettingsView()
-        case .snippets: PlaceholderView(tab: .snippets)
+        case .snippets: SnippetsView()
         case .symbols: PlaceholderView(tab: .symbols)
         case .developer: PlaceholderView(tab: .developer)
         case .keyboard: PlaceholderView(tab: .keyboard)

@@ -4,8 +4,10 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct SettingsView: View {
+    @Environment(\.modelContext) private var modelContext
     @AppStorage(FeatureTab.clipboard.visibilityDefaultsKey) private var clipboardEnabled = true
     @AppStorage(FeatureTab.snippets.visibilityDefaultsKey) private var snippetsEnabled = true
     @AppStorage(FeatureTab.symbols.visibilityDefaultsKey) private var symbolsEnabled = true
@@ -15,6 +17,7 @@ struct SettingsView: View {
     @AppStorage(HotKeyBinding.openPanelDefaultsKey) private var openPanelBinding = HotKeyBinding.defaultOpenPanel
 
     @State private var isAccessibilityTrusted = AccessibilityPermission.isTrusted(prompt: false)
+    @State private var isInputMonitoringTrusted = InputMonitoringPermission.isTrusted
 
     var body: some View {
         Form {
@@ -47,6 +50,17 @@ struct SettingsView: View {
                         }
                     }
                 }
+                HStack {
+                    Image(systemName: isInputMonitoringTrusted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .foregroundStyle(isInputMonitoringTrusted ? .green : .orange)
+                    Text(isInputMonitoringTrusted ? "Input Monitoring access granted" : "Input Monitoring access required for snippet typing-triggers")
+                    Spacer()
+                    if !isInputMonitoringTrusted {
+                        Button("Grant Access") {
+                            requestInputMonitoringAccess()
+                        }
+                    }
+                }
             }
         }
         .formStyle(.grouped)
@@ -55,6 +69,16 @@ struct SettingsView: View {
         }
         .onAppear {
             isAccessibilityTrusted = AccessibilityPermission.isTrusted(prompt: false)
+            isInputMonitoringTrusted = InputMonitoringPermission.isTrusted
+        }
+    }
+
+    private func requestInputMonitoringAccess() {
+        if InputMonitoringPermission.requestAccess() {
+            isInputMonitoringTrusted = true
+            SnippetExpansionEngine.shared.start(modelContext: modelContext)
+        } else {
+            InputMonitoringPermission.openSystemSettings()
         }
     }
 }
