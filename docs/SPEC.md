@@ -227,15 +227,27 @@ but empty/greyed-out.
       highlighting on each chip
 
 ### Milestone 5 — Keyboard + Japanese width conversion ✅
-- [x] On-screen virtual keyboard (`KeyboardView.swift`): digit row + QWERTY
-      rows + shift/space/backspace, appending into an editable compose field
-      rather than a real IME (per the Milestone-1 constraint)
-- [x] The compose field is a normal editable `TextField`, not
-      keyboard-only-input — pasting real Japanese text (e.g. the spec's own
-      "１２３ＡＢＣ　カタカナ" example) works too, so this is a general
-      width-conversion utility, not limited to what the virtual keys can type
-- [x] Settings → "Input Conversion": a Full-width/Half-width picker per
-      category (Numbers/Katakana/Alphabet/Symbols/Space), `@AppStorage`-backed
+**Revised after initial delivery**: the Keyboard tab is a **width-conversion
+control panel**, not an on-screen keyboard — an earlier version included a
+clickable QWERTY grid, which was removed once the user clarified this tab's
+job is to *control* conversion, not provide an alternate way to type.
+
+- [x] `KeyboardView.swift`: per-category (Numbers/Katakana/Alphabet/Symbols/
+      Space) **enable/disable toggle** + Full/Half-width picker (both, not
+      just the width choice — matches the original spec's checkbox +
+      radio-button illustration more closely than the first pass did).
+      Alphabet defaults OFF, the other four default ON, matching the spec's
+      own example checklist.
+- [x] Gated on the Mac's **active keyboard input source actually being
+      Japanese** — `InputSourceMonitor`/`InputSourceObserver`
+      (`Services/InputSourceMonitor.swift`) reads `TISCopyCurrentKeyboardInputSource`
+      and listens for `kTISNotifySelectedKeyboardInputSourceChanged` so the
+      tab live-enables/disables itself (with a notice) as the user switches
+      input sources — not just a one-time check.
+- [x] A plain editable `TextField` (not a virtual keyboard) is where the
+      conversion is actually used — type with your real keyboard or paste
+      existing text (e.g. the spec's own "１２３ＡＢＣ　カタカナ" example)
+      to see the converted result and copy it.
 - [x] `WidthConverter` (`Services/WidthConverter.swift`): groups the input
       into contiguous same-category runs and transforms each run as a whole
       via `String.applyingTransform(.fullwidthToHalfwidth, reverse:)` — a
@@ -243,11 +255,14 @@ but empty/greyed-out.
       for voiced/semi-voiced katakana (ｶﾞ ⇄ ガ), since a half-width kana base
       + its sound mark is one `Character` with 2 Unicode scalars; classify by
       the base scalar, not `scalars.count == 1`, or the mark gets silently
-      skipped. Verified against both of the spec's own worked examples plus
-      a voiced-katakana round trip before shipping.
-- [x] Live converted-text preview below the compose field; Copy button
-      copies the *converted* text via the existing `copyToClipboard`
-      mechanism
+      skipped. A disabled category is simply omitted from the settings dict
+      passed to `convert`, which already passes unconfigured categories
+      through unchanged — no separate on/off branch needed there. Verified
+      against both of the spec's own worked examples plus a voiced-katakana
+      round trip before shipping.
+- [x] This only affects text typed/pasted into KeyClip's own Keyboard tab
+      field, not real-time system-wide typing (that would need a CGEventTap-
+      based engine like Snippets' expansion engine — out of scope here).
 
 ### Milestone 6 — Remaining shortcuts + polish (not started)
 - [ ] Per-tab jump hotkeys (Open Clipboard, Open Symbols, etc.) — the

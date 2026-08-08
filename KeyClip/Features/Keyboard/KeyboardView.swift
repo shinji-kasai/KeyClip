@@ -5,8 +5,21 @@
 
 import SwiftUI
 
+/// A control panel for Japanese full/half-width input conversion — not an
+/// on-screen keyboard. Per-category enable/disable + width choice, plus a
+/// plain text field so the conversion is actually usable (type with your
+/// real keyboard, or paste existing text, then copy the converted result).
+/// Only meaningful with a Japanese input source active, so it disables
+/// itself otherwise rather than pretending to do something useful.
 struct KeyboardView: View {
     @Environment(\.copyToClipboard) private var copyToClipboard
+    @StateObject private var inputSource = InputSourceObserver()
+
+    @AppStorage("widthEnabled.numbers") private var numbersEnabled = true
+    @AppStorage("widthEnabled.katakana") private var katakanaEnabled = true
+    @AppStorage("widthEnabled.alphabet") private var alphabetEnabled = false
+    @AppStorage("widthEnabled.symbols") private var symbolsEnabled = true
+    @AppStorage("widthEnabled.space") private var spaceEnabled = true
 
     @AppStorage(WidthConversionCategory.numbers.defaultsKey) private var numbersMode: WidthMode = .halfWidth
     @AppStorage(WidthConversionCategory.katakana.defaultsKey) private var katakanaMode: WidthMode = .halfWidth
@@ -15,42 +28,77 @@ struct KeyboardView: View {
     @AppStorage(WidthConversionCategory.space.defaultsKey) private var spaceMode: WidthMode = .halfWidth
 
     @State private var rawText = ""
-    @State private var isShifted = false
 
-    private static let rows: [[String]] = [
-        ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
-        ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
-        ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-        ["Z", "X", "C", "V", "B", "N", "M"],
-    ]
-
-    private var settings: [WidthConversionCategory: WidthMode] {
-        [
-            .numbers: numbersMode,
-            .katakana: katakanaMode,
-            .alphabet: alphabetMode,
-            .symbols: symbolsMode,
-            .space: spaceMode,
-        ]
+    private var conversionSettings: [WidthConversionCategory: WidthMode] {
+        var settings: [WidthConversionCategory: WidthMode] = [:]
+        if numbersEnabled { settings[.numbers] = numbersMode }
+        if katakanaEnabled { settings[.katakana] = katakanaMode }
+        if alphabetEnabled { settings[.alphabet] = alphabetMode }
+        if symbolsEnabled { settings[.symbols] = symbolsMode }
+        if spaceEnabled { settings[.space] = spaceMode }
+        return settings
     }
 
     private var convertedText: String {
-        WidthConverter.convert(rawText, settings: settings)
+        WidthConverter.convert(rawText, settings: conversionSettings)
     }
 
     var body: some View {
-        VStack(spacing: 12) {
-            composeArea
+        VStack(spacing: 0) {
+            if !inputSource.isJapanese {
+                notice
+                Divider()
+            }
+
+            Form {
+                Section("Convert Width") {
+                    categoryRow("Numbers", isEnabled: $numbersEnabled, mode: $numbersMode)
+                    categoryRow("Katakana", isEnabled: $katakanaEnabled, mode: $katakanaMode)
+                    categoryRow("Alphabet", isEnabled: $alphabetEnabled, mode: $alphabetMode)
+                    categoryRow("Symbols", isEnabled: $symbolsEnabled, mode: $symbolsMode)
+                    categoryRow("Space", isEnabled: $spaceEnabled, mode: $spaceMode)
+                }
+            }
+            .formStyle(.grouped)
+
             Divider()
-            keyboard
+            composeArea
+                .padding(12)
         }
-        .padding(12)
-        .frame(maxHeight: .infinity, alignment: .top)
+        .disabled(!inputSource.isJapanese)
+        .opacity(inputSource.isJapanese ? 1 : 0.5)
+    }
+
+    private var notice: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            Text("Switch to a Japanese input source to use width conversion")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(8)
+    }
+
+    private func categoryRow(_ title: String, isEnabled: Binding<Bool>, mode: Binding<WidthMode>) -> some View {
+        HStack {
+            Toggle(title, isOn: isEnabled)
+            Spacer()
+            Picker("", selection: mode) {
+                ForEach(WidthMode.allCases) { widthMode in
+                    Text(widthMode.label).tag(widthMode)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .frame(width: 180)
+            .disabled(!isEnabled.wrappedValue)
+        }
     }
 
     private var composeArea: some View {
         VStack(alignment: .leading, spacing: 6) {
-            TextField("Type here, or paste text to convert...", text: $rawText, axis: .vertical)
+            TextField("Type or paste text to convert...", text: $rawText, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(2...4)
 
@@ -75,69 +123,5 @@ struct KeyboardView: View {
                 .disabled(rawText.isEmpty)
             }
         }
-    }
-
-    private var keyboard: some View {
-        VStack(spacing: 6) {
-            ForEach(Self.rows, id: \.self) { row in
-                HStack(spacing: 6) {
-                    ForEach(row, id: \.self) { key in
-                        KeyButton(label: key) {
-                            appendLetterOrDigit(key)
-                        }
-                    }
-                }
-            }
-            HStack(spacing: 6) {
-                KeyButton(label: "⇧", isToggled: isShifted) {
-                    isShifted.toggle()
-                }
-                KeyButton(label: "space", widthMultiplier: 5) {
-                    rawText += " "
-                }
-                KeyButton(label: "⌫") {
-                    backspace()
-                }
-            }
-        }
-    }
-
-    private func appendLetterOrDigit(_ key: String) {
-        if key.rangeOfCharacter(from: .letters) != nil {
-            rawText += isShifted ? key.uppercased() : key.lowercased()
-        } else {
-            rawText += key
-        }
-    }
-
-    private func backspace() {
-        guard !rawText.isEmpty else { return }
-        rawText.removeLast()
-    }
-}
-
-private struct KeyButton: View {
-    let label: String
-    var isToggled: Bool = false
-    var widthMultiplier: CGFloat = 1
-    let action: () -> Void
-    @State private var isHovered = false
-
-    var body: some View {
-        Button(action: action) {
-            Text(label)
-                .font(.system(size: 13, design: .monospaced))
-                .frame(minWidth: 28 * widthMultiplier, minHeight: 28)
-        }
-        .buttonStyle(.plain)
-        .background(backgroundColor)
-        .cornerRadius(6)
-        .onHover { isHovered = $0 }
-    }
-
-    private var backgroundColor: Color {
-        if isToggled { return Color.accentColor.opacity(0.3) }
-        if isHovered { return Color.secondary.opacity(0.18) }
-        return Color.secondary.opacity(0.08)
     }
 }

@@ -6,11 +6,15 @@ KeyClip is a macOS menu-bar keyboard/clipboard utility. It lives in the menu
 bar (no Dock icon) and is summoned via a global hotkey into a floating panel
 overlaid on top of whatever app is frontmost — think Raycast/Alfred/Maccy.
 The panel hosts a tab bar (Clipboard, Snippets, Symbols, Developer, Keyboard,
-Settings); clicking content in Clipboard/Snippets copies it to the system
-pasteboard and hands focus back to the app you were in, ready for ⌘V. Full
-product spec, fixed constraints, and the milestone roadmap live in
-`docs/SPEC.md` — read that before assuming a feature is missing or before
-re-deriving scope in conversation.
+Settings); clicking content in Clipboard/Snippets/Symbols/Developer copies it
+to the system pasteboard and hands focus back to the app you were in, ready
+for ⌘V. **Keyboard is different** — it's a width-conversion control panel
+(enable/disable + full/half-width per category, gated on a Japanese input
+source being active), not a click-to-copy palette; see Milestone 5 in
+`docs/SPEC.md` for why an earlier on-screen-keyboard version of this tab was
+replaced. Full product spec, fixed constraints, and the milestone roadmap
+live in `docs/SPEC.md` — read that before assuming a feature is missing or
+before re-deriving scope in conversation.
 
 **Current status: Milestones 1–5 are complete** (Foundation + Clipboard,
 Snippets, Symbols, Developer, Keyboard + width conversion) — all six tabs
@@ -62,16 +66,23 @@ Repo: https://github.com/shinji-kasai/KeyClip (public).
     and types the expansion via `TextInjector`. It skips any event tagged
     with `syntheticEventMarker` so its own output doesn't feed back into the
     buffer or re-trigger.
-  - **Clipboard and Snippets currently use neither for their click action** —
-    clicking an item calls the `copyToClipboard` environment closure
-    (`Features/Shared/InjectionEnvironment.swift`), which writes to
+  - `KeyClip/Services/InputSourceMonitor.swift` — unrelated to text
+    injection/listening, but gates the Keyboard tab: reads
+    `TISCopyCurrentKeyboardInputSource` and observes
+    `kTISNotifySelectedKeyboardInputSourceChanged` via
+    `DistributedNotificationCenter` so `InputSourceObserver` (an
+    `ObservableObject`) live-updates whether the active input source is
+    Japanese, rather than checking once on tab appearance.
+  - **Clipboard/Snippets/Symbols/Developer click-to-use their content via
+    `copyToClipboard`**, not `TextInjector` — the environment closure
+    (`Features/Shared/InjectionEnvironment.swift`) writes to
     `NSPasteboard.general` and reactivates the previously-frontmost app so
     the user presses ⌘V themselves. This replaced an earlier
     auto-typed-injection approach: copy+paste is faster, doesn't mangle long
     or unicode-heavy text, and needs no Accessibility permission for that
-    path. `injectText`/`TextInjector.inject` stays available in the
-    environment for Symbols/Developer/Keyboard, where direct insertion may
-    still make sense when those are built.
+    path. `injectText`/`TextInjector.inject` is still wired into the
+    environment but currently unused by any tab — kept for a future direct-
+    insert use case, not dead code to remove reflexively.
 - **Persistence**:
   - `ClipboardItem` and `Snippet` (`KeyClip/Models/`) are SwiftData `@Model`s.
     Clipboard favorites/pinned are flags on the same row (not a separate
