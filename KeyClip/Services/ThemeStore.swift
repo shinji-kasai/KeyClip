@@ -79,8 +79,12 @@ enum ThemePresets {
         selected: Color.brown.opacity(0.3),
         selectedText: .black
     )
-    static let tiffanyBlue = ThemePreset(
-        id: "tiffanyBlue", name: "Tiffany Blue",
+    // `id` stays "tiffanyBlue" (not "turquoise") even though the displayed
+    // name changed — it's the persisted `UserDefaults` key for anyone who
+    // already has this preset selected, and renaming it would silently fall
+    // back to System for them on next launch.
+    static let turquoise = ThemePreset(
+        id: "tiffanyBlue", name: "Turquoise",
         background: Color(red: 0.93, green: 0.98, blue: 0.97),
         text: Color(red: 0.05, green: 0.2, blue: 0.19),
         hover: Color(red: 0.04, green: 0.73, blue: 0.71).opacity(0.2),
@@ -97,8 +101,60 @@ enum ThemePresets {
         // low-contrast case this field exists to avoid — white instead.
         selectedText: .white
     )
+    // Official Dracula palette (draculatheme.com/contribute): background
+    // #282a36, foreground #f8f8f2, purple accent #bd93f9.
+    static let dracula = ThemePreset(
+        id: "dracula", name: "Dracula",
+        background: Color(red: 0.157, green: 0.165, blue: 0.212),
+        text: Color(red: 0.973, green: 0.973, blue: 0.949),
+        hover: Color(red: 0.741, green: 0.576, blue: 0.976).opacity(0.18),
+        selected: Color(red: 0.741, green: 0.576, blue: 0.976).opacity(0.35),
+        selectedText: .white
+    )
+    // Anthropic's Claude.ai palette: cream surface, near-black text, the
+    // "Crail" terracotta accent used for buttons/highlights.
+    static let claude = ThemePreset(
+        id: "claude", name: "Claude",
+        background: Color(red: 0.961, green: 0.957, blue: 0.933),
+        text: Color(red: 0.145, green: 0.137, blue: 0.129),
+        hover: Color(red: 0.851, green: 0.467, blue: 0.341).opacity(0.18),
+        selected: Color(red: 0.851, green: 0.467, blue: 0.341).opacity(0.35),
+        selectedText: .black
+    )
+    // GitHub's light UI: white surface, its signature accent blue #0969DA.
+    static let github = ThemePreset(
+        id: "github", name: "GitHub",
+        background: .white,
+        text: Color(red: 0.122, green: 0.137, blue: 0.157),
+        hover: Color(red: 0.024, green: 0.412, blue: 0.855).opacity(0.1),
+        selected: Color(red: 0.024, green: 0.412, blue: 0.855).opacity(0.18),
+        selectedText: .black
+    )
+    // Ubuntu's terminal aubergine (#2C001E) with its signature orange
+    // accent (#E95420).
+    static let ubuntu = ThemePreset(
+        id: "ubuntu", name: "Ubuntu",
+        background: Color(red: 0.173, green: 0.0, blue: 0.118),
+        text: Color(red: 0.94, green: 0.94, blue: 0.94),
+        hover: Color(red: 0.914, green: 0.329, blue: 0.125).opacity(0.2),
+        selected: Color(red: 0.914, green: 0.329, blue: 0.125).opacity(0.4),
+        selectedText: .white
+    )
+    // One Dark Pro, the most-installed VS Code color theme — Atom's "One
+    // Dark" palette (#282c34 background, #61afef accent blue).
+    static let oneDark = ThemePreset(
+        id: "oneDark", name: "One Dark",
+        background: Color(red: 0.157, green: 0.173, blue: 0.204),
+        text: Color(red: 0.671, green: 0.698, blue: 0.749),
+        hover: Color(red: 0.380, green: 0.686, blue: 0.937).opacity(0.18),
+        selected: Color(red: 0.380, green: 0.686, blue: 0.937).opacity(0.35),
+        selectedText: .white
+    )
 
-    static let all: [ThemePreset] = [system, light, dark, ocean, forest, orange, cream, tiffanyBlue, matrix]
+    static let all: [ThemePreset] = [
+        system, light, dark, ocean, forest, orange, cream, turquoise, matrix,
+        dracula, claude, github, ubuntu, oneDark,
+    ]
     static let customID = "custom"
 }
 
@@ -155,6 +211,28 @@ final class ThemeStore: ObservableObject {
         selectedText = preset.selectedText
     }
 
+    /// Explicit switch to "Custom" from the Theme picker itself. `Custom`
+    /// isn't a member of `ThemePresets.all` (it has no fixed colors of its
+    /// own), so `apply(_:)` can't handle it — picking it there used to just
+    /// silently do nothing. Restores whichever custom colors were last
+    /// saved, if any; otherwise seeds from whatever's currently showing (via
+    /// `markCustom()`, same seeding `setX(_:)` does) so the color rows don't
+    /// jump to something unrelated the moment you pick "Custom".
+    func selectCustom() {
+        guard presetID != ThemePresets.customID else { return }
+        guard let savedBackground = Self.loadColor(Keys.background) else {
+            markCustom()
+            return
+        }
+        presetID = ThemePresets.customID
+        UserDefaults.standard.set(ThemePresets.customID, forKey: Keys.presetID)
+        background = savedBackground
+        text = Self.loadColor(Keys.text) ?? text
+        hover = Self.loadColor(Keys.hover) ?? hover
+        selected = Self.loadColor(Keys.selected) ?? selected
+        selectedText = Self.loadColor(Keys.selectedText) ?? selectedText
+    }
+
     func setBackground(_ color: Color) {
         markCustom()
         background = color
@@ -183,6 +261,25 @@ final class ThemeStore: ObservableObject {
         markCustom()
         selectedText = color
         Self.saveColor(color, key: Keys.selectedText)
+    }
+
+    /// Whether native AppKit-backed chrome (the `Picker`/`ColorPicker` boxes,
+    /// `HotKeyRecorderView`'s `NSColor.labelColor`/`controlBackgroundColor`,
+    /// a `TextField`'s placeholder/caret) should draw dark or light. Those
+    /// are rendered by AppKit itself from the view's *effective appearance*,
+    /// not from our SwiftUI-level `background`/`text` colors — so without
+    /// this, a dark preset picked while macOS is in Light mode renders that
+    /// chrome with light (white-box, black-text) styling on top of a dark
+    /// background, i.e. invisible. Pinning `preferredColorScheme` to the
+    /// theme's own luminance keeps AppKit's native rendering consistent with
+    /// whatever custom colors are actually on screen. `nil` for the System
+    /// preset so it keeps following the real system appearance instead of
+    /// being pinned to one.
+    var preferredColorScheme: ColorScheme? {
+        guard presetID != ThemePresets.system.id else { return nil }
+        guard let rgb = NSColor(background).usingColorSpace(.deviceRGB) else { return nil }
+        let luminance = 0.2126 * rgb.redComponent + 0.7152 * rgb.greenComponent + 0.0722 * rgb.blueComponent
+        return luminance < 0.5 ? .dark : .light
     }
 
     private func markCustom() {

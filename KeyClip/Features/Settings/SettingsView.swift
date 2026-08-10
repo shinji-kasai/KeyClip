@@ -44,34 +44,37 @@ struct SettingsView: View {
             }
 
             Section {
-                // Picker/ColorPicker are native controls that draw their own
-                // box/swatch chrome regardless of the surrounding background,
-                // so they deliberately do NOT get `.foregroundStyle(theme.text)`
-                // here — forcing that on them fought their own chrome and was
-                // reported as hard to read. Let macOS handle their label color.
+                // The Theme `Picker` is a native control that draws its own
+                // box chrome regardless of the surrounding background, so it
+                // deliberately does NOT get `.foregroundStyle(theme.text)`
+                // here — forcing that on it fought its own chrome and was
+                // reported as hard to read. Let macOS handle its label
+                // color. `ColorSwatchPicker`'s swatches are custom-drawn,
+                // not native chrome, so they don't have that problem — see
+                // its doc comment.
                 Picker("Theme", selection: presetBinding) {
                     ForEach(ThemePresets.all) { preset in
                         Text(preset.name).tag(preset.id)
                     }
                     Text("Custom").tag(ThemePresets.customID)
                 }
-                ColorPicker("Background", selection: Binding(
+                ColorSwatchPicker(title: "Background", selection: Binding(
                     get: { theme.background },
                     set: { theme.setBackground($0) }
                 ))
-                ColorPicker("Text", selection: Binding(
+                ColorSwatchPicker(title: "Text", selection: Binding(
                     get: { theme.text },
                     set: { theme.setText($0) }
                 ))
-                ColorPicker("Hover Highlight", selection: Binding(
+                ColorSwatchPicker(title: "Hover Highlight", selection: Binding(
                     get: { theme.hover },
                     set: { theme.setHover($0) }
                 ))
-                ColorPicker("Selected Highlight", selection: Binding(
+                ColorSwatchPicker(title: "Selected Highlight", selection: Binding(
                     get: { theme.selected },
                     set: { theme.setSelected($0) }
                 ))
-                ColorPicker("Selected Text", selection: Binding(
+                ColorSwatchPicker(title: "Selected Text", selection: Binding(
                     get: { theme.selectedText },
                     set: { theme.setSelectedText($0) }
                 ))
@@ -152,8 +155,11 @@ struct SettingsView: View {
         Binding(
             get: { theme.presetID },
             set: { newID in
-                guard let preset = ThemePresets.all.first(where: { $0.id == newID }) else { return }
-                theme.apply(preset)
+                if newID == ThemePresets.customID {
+                    theme.selectCustom()
+                } else if let preset = ThemePresets.all.first(where: { $0.id == newID }) {
+                    theme.apply(preset)
+                }
             }
         )
     }

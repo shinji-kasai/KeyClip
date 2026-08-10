@@ -11,7 +11,7 @@ struct RootTabView: View {
     @AppStorage(FeatureTab.snippets.visibilityDefaultsKey) private var snippetsEnabled = true
     @AppStorage(FeatureTab.symbols.visibilityDefaultsKey) private var symbolsEnabled = true
 
-    @State private var selectedTab: FeatureTab = .clipboard
+    @EnvironmentObject private var tabSelection: TabSelectionStore
 
     private var visibleTabs: [FeatureTab] {
         FeatureTab.allCases.filter(isVisible)
@@ -35,9 +35,10 @@ struct RootTabView: View {
         }
         .frame(minWidth: 480, minHeight: 600)
         .background(theme.background)
+        .preferredColorScheme(theme.preferredColorScheme)
         .onChange(of: visibleTabs) { _, newValue in
-            if !newValue.contains(selectedTab) {
-                selectedTab = newValue.first ?? .settings
+            if !newValue.contains(tabSelection.selectedTab) {
+                tabSelection.selectedTab = newValue.first ?? .settings
             }
         }
     }
@@ -65,8 +66,8 @@ struct RootTabView: View {
     private var tabBar: some View {
         HStack(spacing: 4) {
             ForEach(visibleTabs) { tab in
-                TabBarButton(tab: tab, isSelected: selectedTab == tab) {
-                    selectedTab = tab
+                TabBarButton(tab: tab, isSelected: tabSelection.selectedTab == tab) {
+                    tabSelection.selectedTab = tab
                 }
             }
         }
@@ -75,7 +76,7 @@ struct RootTabView: View {
 
     @ViewBuilder
     private var content: some View {
-        switch selectedTab {
+        switch tabSelection.selectedTab {
         case .clipboard: ClipboardView()
         case .settings: SettingsView()
         case .snippets: SnippetsView()

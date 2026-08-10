@@ -147,6 +147,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             panel.hideUnlessPresentingSheet()
         } else {
             previouslyFrontmostApp = NSWorkspace.shared.frontmostApplication
+            TabSelectionStore.shared.resetToDefault()
             positionPanelNearStatusItem(panel)
             panel.makeKeyAndOrderFront(nil)
         }
@@ -158,16 +159,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         TextInjector.inject(text, into: target)
     }
 
-    /// Puts `text` on the system pasteboard and hands focus back to whatever
-    /// app was frontmost before the panel opened, so the user just presses
-    /// ⌘V — no Accessibility permission needed, and it's far more reliable
-    /// than typing long/unicode-heavy text out via simulated keystrokes.
+    /// Puts `text` on the system pasteboard, hands focus back to whatever
+    /// app was frontmost before the panel opened, and (with Accessibility
+    /// trust) posts a synthetic ⌘V so it lands there immediately — no manual
+    /// ⌘V needed. Still copy+paste under the hood rather than typing the
+    /// text out via simulated keystrokes, so long/unicode-heavy content
+    /// isn't at risk of mangling; only the trailing paste keystroke is
+    /// synthetic. Without Accessibility trust, `pasteFromClipboard` still
+    /// reactivates the target app and leaves the content on the pasteboard
+    /// for a manual ⌘V, same as before.
     private func copyAndHide(_ text: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
         let target = previouslyFrontmostApp
         panel?.hideUnlessPresentingSheet()
-        target?.activate(options: [])
+        TextInjector.pasteFromClipboard(into: target)
     }
 
     private func positionPanelNearStatusItem(_ panel: NSPanel) {

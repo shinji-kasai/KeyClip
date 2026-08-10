@@ -20,7 +20,8 @@ final class DoubleCommandTapDetector {
     /// Max gap between the two taps to count as a double-tap.
     private let threshold: TimeInterval = 0.35
 
-    private var monitor: Any?
+    private var globalMonitor: Any?
+    private var localMonitor: Any?
     private var lastCommandDownTime: Date?
     private var previousFlags: NSEvent.ModifierFlags = []
     private var handler: (() -> Void)?
@@ -31,18 +32,34 @@ final class DoubleCommandTapDetector {
         self.handler = handler
     }
 
+    /// A global monitor alone only sees taps while some *other* app is
+    /// frontmost — it never receives events targeted at KeyClip's own
+    /// windows (per `NSEvent.addGlobalMonitorForEvents` docs). Once the
+    /// panel opens and becomes key, KeyClip itself is the focused app, so a
+    /// second double-tap meant to close the panel would go unseen without a
+    /// local monitor too. The two are mutually exclusive (an event targets
+    /// either this app or another one), so combining them covers both
+    /// directions of the toggle with no risk of double-firing.
     func start() {
-        guard monitor == nil else { return }
-        monitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+        guard globalMonitor == nil else { return }
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             self?.handle(event)
+        }
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            self?.handle(event)
+            return event
         }
     }
 
     func stop() {
-        if let monitor {
-            NSEvent.removeMonitor(monitor)
+        if let globalMonitor {
+            NSEvent.removeMonitor(globalMonitor)
         }
-        monitor = nil
+        globalMonitor = nil
+        if let localMonitor {
+            NSEvent.removeMonitor(localMonitor)
+        }
+        localMonitor = nil
     }
 
     private func handle(_ event: NSEvent) {

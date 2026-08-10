@@ -81,6 +81,46 @@ enum TextInjector {
         }
     }
 
+    /// Reactivates `app` (if needed) and posts a synthetic ⌘V, so pasteboard
+    /// content set immediately beforehand (`AppDelegate.copyAndHide`) lands
+    /// in the target app without the user pressing ⌘V themselves. Unlike
+    /// `inject`, this never types the text out character-by-character — the
+    /// `keyboardSetUnicodeString` chunking is what risks mangling long or
+    /// unicode-heavy text — it only triggers the target app's own native
+    /// paste handling, so that risk doesn't apply here. Always activates
+    /// `app` regardless of Accessibility trust (that's just window
+    /// activation, no permission needed) so the content is at least a manual
+    /// ⌘V away; only the synthetic keystroke itself is gated.
+    @discardableResult
+    static func pasteFromClipboard(into app: NSRunningApplication?) -> Bool {
+        let isTrusted = AccessibilityPermission.isTrusted(prompt: false)
+        if let app, !app.isActive {
+            app.activate(options: [])
+            guard isTrusted else { return false }
+            // Same heuristic delay as `inject`: gives the target app time to
+            // actually become frontmost before the keystroke is posted.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                postPasteKeystroke()
+            }
+        } else {
+            guard isTrusted else { return false }
+            postPasteKeystroke()
+        }
+        return true
+    }
+
+    private static func postPasteKeystroke() {
+        let source = CGEventSource(stateID: .combinedSessionState)
+        guard let down = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_ANSI_V), keyDown: true),
+              let up = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_ANSI_V), keyDown: false) else { return }
+        down.flags = .maskCommand
+        up.flags = .maskCommand
+        tagSynthetic(down)
+        tagSynthetic(up)
+        down.post(tap: .cghidEventTap)
+        up.post(tap: .cghidEventTap)
+    }
+
     private static func tagSynthetic(_ event: CGEvent) {
         event.setIntegerValueField(.eventSourceUserData, value: syntheticEventMarker)
     }
