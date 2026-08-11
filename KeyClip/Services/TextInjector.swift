@@ -23,6 +23,13 @@ enum TextInjector {
     /// feeding them back into its trigger-matching buffer.
     static let syntheticEventMarker: Int64 = 0x4B79_436C_4B79
 
+    /// UserDefaults key backing Settings → Startup & Behavior's "Auto-Paste
+    /// on Select" toggle. Gates whether `AppDelegate.copyAndHide` follows the
+    /// pasteboard write with a synthetic ⌘V (`pasteFromClipboard`) or leaves
+    /// the content on the pasteboard for a manual paste. Defaults to on,
+    /// matching the original (non-configurable) auto-paste behavior.
+    static let autoPasteDefaultsKey = "autoPasteEnabled"
+
     /// Reactivates `app` (if it isn't already active) and types `text` into
     /// it. Used for the panel's "click to insert directly" flows.
     @discardableResult
@@ -81,10 +88,10 @@ enum TextInjector {
         }
     }
 
-    /// Reactivates `app` (if needed) and posts a synthetic ⌘V, so pasteboard
-    /// content set immediately beforehand (`AppDelegate.copyAndHide`) lands
-    /// in the target app without the user pressing ⌘V themselves. Unlike
-    /// `inject`, this never types the text out character-by-character — the
+    /// Reactivates `app` and posts a synthetic ⌘V, so pasteboard content set
+    /// immediately beforehand (`AppDelegate.copyAndHide`) lands in the
+    /// target app without the user pressing ⌘V themselves. Unlike `inject`,
+    /// this never types the text out character-by-character — the
     /// `keyboardSetUnicodeString` chunking is what risks mangling long or
     /// unicode-heavy text — it only triggers the target app's own native
     /// paste handling, so that risk doesn't apply here. Always activates
@@ -93,17 +100,21 @@ enum TextInjector {
     /// ⌘V away; only the synthetic keystroke itself is gated.
     @discardableResult
     static func pasteFromClipboard(into app: NSRunningApplication?) -> Bool {
-        let isTrusted = AccessibilityPermission.isTrusted(prompt: false)
-        if let app, !app.isActive {
-            app.activate(options: [])
-            guard isTrusted else { return false }
-            // Same heuristic delay as `inject`: gives the target app time to
-            // actually become frontmost before the keystroke is posted.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                postPasteKeystroke()
-            }
-        } else {
-            guard isTrusted else { return false }
+        app?.activate(options: [])
+        guard AccessibilityPermission.isTrusted(prompt: false) else { return false }
+        // Always deferred — even when `app` already reported `isActive`.
+        // KeyClip's panel is a `.nonactivatingPanel`, so the app that was
+        // frontmost before the panel opened keeps `NSRunningApplication.isActive
+        // == true` the *entire* time the panel has key-window status; only
+        // window-server key status moves, not OS-level app activation. This
+        // used to skip the delay whenever `isActive` was already true and
+        // post the keystroke synchronously, racing `AppDelegate.copyAndHide`'s
+        // `panel.hideUnlessPresentingSheet()` (an `orderOut`) for who actually
+        // held key-window status — the keystroke frequently lost that race
+        // and landed nowhere, which is why auto-paste looked like it silently
+        // did nothing. The same short heuristic delay `inject` already uses
+        // for its own reactivation case fixes it here too.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             postPasteKeystroke()
         }
         return true

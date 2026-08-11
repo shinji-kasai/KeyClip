@@ -160,20 +160,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Puts `text` on the system pasteboard, hands focus back to whatever
-    /// app was frontmost before the panel opened, and (with Accessibility
-    /// trust) posts a synthetic ⌘V so it lands there immediately — no manual
-    /// ⌘V needed. Still copy+paste under the hood rather than typing the
-    /// text out via simulated keystrokes, so long/unicode-heavy content
-    /// isn't at risk of mangling; only the trailing paste keystroke is
-    /// synthetic. Without Accessibility trust, `pasteFromClipboard` still
-    /// reactivates the target app and leaves the content on the pasteboard
-    /// for a manual ⌘V, same as before.
+    /// app was frontmost before the panel opened, and — as long as Settings
+    /// → Startup & Behavior's "Auto-Paste on Select" is on (the default) and
+    /// Accessibility trust is granted — posts a synthetic ⌘V so it lands
+    /// there immediately, no manual ⌘V needed. Still copy+paste under the
+    /// hood rather than typing the text out via simulated keystrokes, so
+    /// long/unicode-heavy content isn't at risk of mangling; only the
+    /// trailing paste keystroke is synthetic. With auto-paste off, or
+    /// without Accessibility trust, this still reactivates the target app
+    /// and leaves the content on the pasteboard for a manual ⌘V.
     private func copyAndHide(_ text: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
         let target = previouslyFrontmostApp
         panel?.hideUnlessPresentingSheet()
-        TextInjector.pasteFromClipboard(into: target)
+        let autoPasteEnabled = UserDefaults.standard.object(forKey: TextInjector.autoPasteDefaultsKey) as? Bool ?? true
+        if autoPasteEnabled {
+            TextInjector.pasteFromClipboard(into: target)
+        } else {
+            target?.activate(options: [])
+        }
     }
 
     private func positionPanelNearStatusItem(_ panel: NSPanel) {

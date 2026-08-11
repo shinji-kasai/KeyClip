@@ -33,4 +33,18 @@ enum FeatureTab: String, CaseIterable, Identifiable {
     var isAlwaysVisible: Bool { self == .settings }
 
     var visibilityDefaultsKey: String { "tabEnabled.\(rawValue)" }
+
+    /// UserDefaults key backing the user-configurable "which tab opens the
+    /// panel" setting (`SettingsView`'s Default Tab picker,
+    /// `TabSelectionStore.resetToDefault()`).
+    static let defaultTabDefaultsKey = "defaultTab"
+
+    /// Live visibility check against `UserDefaults` directly, for consumers
+    /// (like `TabSelectionStore`) that aren't SwiftUI views and so can't read
+    /// the `tabEnabled.*` flags via `@AppStorage` the way `RootTabView` and
+    /// `SettingsView` do.
+    static func isVisible(_ tab: FeatureTab, defaults: UserDefaults = .standard) -> Bool {
+        if tab.isAlwaysVisible { return true }
+        return defaults.object(forKey: tab.visibilityDefaultsKey) as? Bool ?? true
+    }
 }

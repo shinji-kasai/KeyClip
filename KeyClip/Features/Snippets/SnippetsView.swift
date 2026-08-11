@@ -8,12 +8,14 @@ import SwiftData
 
 struct SnippetsView: View {
     @EnvironmentObject private var theme: ThemeStore
+    @EnvironmentObject private var tabSelection: TabSelectionStore
     @Environment(\.copyToClipboard) private var copyToClipboard
     @Environment(\.modelContext) private var modelContext
     @Query(sort: [SortDescriptor(\Snippet.category), SortDescriptor(\Snippet.trigger)]) private var snippets: [Snippet]
     @State private var searchText = ""
     @State private var editingSnippet: Snippet?
     @State private var isPresentingEditor = false
+    private let topAnchorID = "top"
 
     private var filtered: [Snippet] {
         guard !searchText.isEmpty else { return snippets }
@@ -79,18 +81,24 @@ struct SnippetsView: View {
     }
 
     private var list: some View {
-        List {
-            ForEach(grouped, id: \.category) { group in
-                Section {
-                    ForEach(group.items) { row(for: $0) }
-                } header: {
-                    Text(group.category).foregroundStyle(theme.text.opacity(0.6))
+        ScrollViewReader { proxy in
+            List {
+                Color.clear.frame(height: 0).id(topAnchorID)
+                ForEach(grouped, id: \.category) { group in
+                    Section {
+                        ForEach(group.items) { row(for: $0) }
+                    } header: {
+                        Text(group.category).foregroundStyle(theme.text.opacity(0.6))
+                    }
                 }
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(theme.background)
+            .onChange(of: tabSelection.openGeneration) { _, _ in
+                proxy.scrollTo(topAnchorID, anchor: .top)
+            }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .background(theme.background)
     }
 
     private func row(for snippet: Snippet) -> some View {

@@ -8,11 +8,13 @@ import SwiftData
 
 struct SymbolsView: View {
     @EnvironmentObject private var theme: ThemeStore
+    @EnvironmentObject private var tabSelection: TabSelectionStore
     @Environment(\.copyToClipboard) private var copyToClipboard
     @Environment(\.modelContext) private var modelContext
     @Query private var usageRecords: [SymbolUsage]
     @State private var searchText = ""
     @State private var expandedCategories: Set<SymbolCategory> = Set(SymbolCategory.allCases)
+    private let topAnchorID = "top"
 
     private var usageByCharacter: [String: SymbolUsage] {
         Dictionary(uniqueKeysWithValues: usageRecords.map { ($0.character, $0) })
@@ -49,23 +51,29 @@ struct SymbolsView: View {
         VStack(spacing: 0) {
             searchField
             Divider()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    if searchText.isEmpty && !favorites.isEmpty {
-                        labeledSection("Favorites", items: favorites)
-                    }
-                    if searchText.isEmpty && !recentlyUsed.isEmpty {
-                        labeledSection("Recently Used", items: recentlyUsed)
-                        Divider()
-                    }
-                    ForEach(SymbolCategory.allCases) { category in
-                        let items = symbols(in: category)
-                        if !items.isEmpty {
-                            categorySection(category, items: items)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        if searchText.isEmpty && !favorites.isEmpty {
+                            labeledSection("Favorites", items: favorites)
+                        }
+                        if searchText.isEmpty && !recentlyUsed.isEmpty {
+                            labeledSection("Recently Used", items: recentlyUsed)
+                            Divider()
+                        }
+                        ForEach(SymbolCategory.allCases) { category in
+                            let items = symbols(in: category)
+                            if !items.isEmpty {
+                                categorySection(category, items: items)
+                            }
                         }
                     }
+                    .padding(12)
+                    .id(topAnchorID)
                 }
-                .padding(12)
+                .onChange(of: tabSelection.openGeneration) { _, _ in
+                    proxy.scrollTo(topAnchorID, anchor: .top)
+                }
             }
         }
         .background(theme.background)

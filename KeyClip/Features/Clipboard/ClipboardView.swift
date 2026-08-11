@@ -8,10 +8,12 @@ import SwiftData
 
 struct ClipboardView: View {
     @EnvironmentObject private var theme: ThemeStore
+    @EnvironmentObject private var tabSelection: TabSelectionStore
     @Environment(\.copyToClipboard) private var copyToClipboard
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \ClipboardItem.createdAt, order: .reverse) private var items: [ClipboardItem]
     @State private var searchText = ""
+    private let topAnchorID = "top"
 
     private var pinnedOrFavorite: [ClipboardItem] {
         items.filter { $0.isPinned || $0.isFavorite }
@@ -59,25 +61,31 @@ struct ClipboardView: View {
     }
 
     private var list: some View {
-        List {
-            if !pinnedOrFavorite.isEmpty {
-                Section {
-                    ForEach(pinnedOrFavorite) { row(for: $0) }
-                } header: {
-                    sectionHeader("Favorites")
-                }
-                Section {
+        ScrollViewReader { proxy in
+            List {
+                Color.clear.frame(height: 0).id(topAnchorID)
+                if !pinnedOrFavorite.isEmpty {
+                    Section {
+                        ForEach(pinnedOrFavorite) { row(for: $0) }
+                    } header: {
+                        sectionHeader("Favorites")
+                    }
+                    Section {
+                        ForEach(history) { row(for: $0) }
+                    } header: {
+                        sectionHeader("History")
+                    }
+                } else {
                     ForEach(history) { row(for: $0) }
-                } header: {
-                    sectionHeader("History")
                 }
-            } else {
-                ForEach(history) { row(for: $0) }
+            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(theme.background)
+            .onChange(of: tabSelection.openGeneration) { _, _ in
+                proxy.scrollTo(topAnchorID, anchor: .top)
             }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .background(theme.background)
     }
 
     private func sectionHeader(_ title: String) -> some View {

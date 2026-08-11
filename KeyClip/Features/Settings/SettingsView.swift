@@ -13,6 +13,9 @@ struct SettingsView: View {
     @AppStorage(FeatureTab.snippets.visibilityDefaultsKey) private var snippetsEnabled = true
     @AppStorage(FeatureTab.symbols.visibilityDefaultsKey) private var symbolsEnabled = true
 
+    @AppStorage(FeatureTab.defaultTabDefaultsKey) private var defaultTab: FeatureTab = .clipboard
+    @AppStorage(TextInjector.autoPasteDefaultsKey) private var autoPasteEnabled = true
+
     @AppStorage(HotKeyBinding.openPanelDefaultsKey) private var openPanelBinding = HotKeyBinding.defaultOpenPanel
     @AppStorage(DoubleCommandTapDetector.enabledDefaultsKey) private var doubleCommandTapEnabled = true
 
@@ -20,6 +23,7 @@ struct SettingsView: View {
     @State private var isInputMonitoringTrusted = InputMonitoringPermission.isTrusted
     @State private var updateCheckResult: UpdateCheckResult?
     @State private var isCheckingForUpdate = false
+    @State private var isShowingClearHistoryConfirmation = false
 
     var body: some View {
         Form {
@@ -29,6 +33,20 @@ struct SettingsView: View {
                 themedToggle("Symbols", isOn: $symbolsEnabled)
             } header: {
                 sectionHeader("Visible Tabs")
+            }
+
+            Section {
+                Picker("Default Tab", selection: $defaultTab) {
+                    ForEach(defaultTabOptions) { tab in
+                        Text(tab.title).tag(tab)
+                    }
+                }
+                themedToggle("Auto-Paste on Select", isOn: $autoPasteEnabled)
+            } header: {
+                sectionHeader("Startup & Behavior")
+            } footer: {
+                Text("Default Tab is what the panel opens to. Auto-Paste immediately pastes what you click into the app you were using — turn it off to only copy it to the clipboard instead.")
+                    .foregroundStyle(theme.text.opacity(0.6))
             }
 
             Section {
@@ -121,10 +139,37 @@ struct SettingsView: View {
             } header: {
                 sectionHeader("Updates")
             }
+
+            Section {
+                HStack {
+                    Text("Clear Clipboard History").foregroundStyle(theme.text)
+                    Spacer()
+                    Button("Clear…", role: .destructive) {
+                        isShowingClearHistoryConfirmation = true
+                    }
+                }
+            } header: {
+                sectionHeader("Data")
+            } footer: {
+                Text("Removes clipboard history. Pinned and favorited items are kept.")
+                    .foregroundStyle(theme.text.opacity(0.6))
+            }
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .background(theme.background)
+        .confirmationDialog(
+            "Clear clipboard history?",
+            isPresented: $isShowingClearHistoryConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Clear History", role: .destructive) {
+                clearClipboardHistory()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Pinned and favorited items are kept. This can't be undone.")
+        }
         .onChange(of: openPanelBinding) { _, newValue in
             HotKeyManager.shared.updateBinding(newValue)
         }
@@ -135,6 +180,9 @@ struct SettingsView: View {
                 DoubleCommandTapDetector.shared.stop()
             }
         }
+        .onChange(of: clipboardEnabled) { _, _ in resetDefaultTabIfHidden() }
+        .onChange(of: snippetsEnabled) { _, _ in resetDefaultTabIfHidden() }
+        .onChange(of: symbolsEnabled) { _, _ in resetDefaultTabIfHidden() }
         .onAppear {
             isAccessibilityTrusted = AccessibilityPermission.isTrusted(prompt: false)
             isInputMonitoringTrusted = InputMonitoringPermission.isTrusted
@@ -148,6 +196,30 @@ struct SettingsView: View {
     private func themedToggle(_ title: String, isOn: Binding<Bool>) -> some View {
         Toggle(isOn: isOn) {
             Text(title).foregroundStyle(theme.text)
+        }
+    }
+
+    /// Tabs the Default Tab picker offers — mirrors `RootTabView`'s own
+    /// visibility filter so the picker can never point at a hidden tab.
+    private var defaultTabOptions: [FeatureTab] {
+        FeatureTab.allCases.filter(isTabVisible)
+    }
+
+    private func isTabVisible(_ tab: FeatureTab) -> Bool {
+        switch tab {
+        case .clipboard: return clipboardEnabled
+        case .snippets: return snippetsEnabled
+        case .symbols: return symbolsEnabled
+        case .settings: return true
+        }
+    }
+
+    /// If a tab gets hidden in Visible Tabs while it's the configured
+    /// default, fall back rather than leaving Default Tab pointed at
+    /// something the picker no longer lists.
+    private func resetDefaultTabIfHidden() {
+        if !isTabVisible(defaultTab) {
+            defaultTab = defaultTabOptions.first ?? .settings
         }
     }
 
@@ -192,6 +264,20 @@ struct SettingsView: View {
             updateCheckResult = await UpdateChecker.checkForUpdate()
             isCheckingForUpdate = false
         }
+    }
+
+    /// Deletes all non-pinned, non-favorite clipboard history — mirrors
+    /// `ClipboardMonitor.pruneHistoryIfNeeded`'s convention of never
+    /// touching pinned/favorite rows.
+    private func clearClipboardHistory() {
+        let descriptor = FetchDescriptor<ClipboardItem>(
+            predicate: #Predicate { !$0.isPinned && !$0.isFavorite }
+        )
+        guard let items = try? modelContext.fetch(descriptor) else { return }
+        for item in items {
+            modelContext.delete(item)
+        }
+        try? modelContext.save()
     }
 
     private func requestInputMonitoringAccess() {
