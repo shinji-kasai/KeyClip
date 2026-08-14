@@ -27,6 +27,10 @@ struct SettingsView: View {
     @State private var isInstallingUpdate = false
     @State private var installUpdateError: String?
     @State private var isShowingClearHistoryConfirmation = false
+    @State private var isShowingDuplicatePrompt = false
+    @State private var duplicateName = ""
+    @State private var isShowingRenamePrompt = false
+    @State private var renameText = ""
 
     var body: some View {
         Form {
@@ -40,17 +44,20 @@ struct SettingsView: View {
             }
 
             Section {
-                Picker("Default Tab", selection: $defaultTab) {
-                    ForEach(defaultTabOptions) { tab in
-                        Text(tab.title).tag(tab)
-                    }
+                HStack {
+                    Text("Default Tab").foregroundStyle(theme.text)
+                    Spacer()
+                    ThemedMenuPicker(
+                        selection: $defaultTab,
+                        options: defaultTabOptions.map { ($0.title, $0) }
+                    )
                 }
                 themedToggle("Auto-Paste on Select", isOn: $autoPasteEnabled)
             } header: {
                 sectionHeader("Startup & Behavior")
             } footer: {
                 Text("Default Tab is what the panel opens to. Auto-Paste immediately pastes what you click into the app you were using — turn it off to only copy it to the clipboard instead.")
-                    .foregroundStyle(theme.text.opacity(0.6))
+                    .foregroundStyle(theme.text.opacity(0.45))
             }
 
             Section {
@@ -66,20 +73,47 @@ struct SettingsView: View {
             }
 
             Section {
-                // The Theme `Picker` is a native control that draws its own
-                // box chrome regardless of the surrounding background, so it
-                // deliberately does NOT get `.foregroundStyle(theme.text)`
-                // here — forcing that on it fought its own chrome and was
-                // reported as hard to read. Let macOS handle its label
-                // color. `ColorSwatchPicker`'s swatches are custom-drawn,
-                // not native chrome, so they don't have that problem — see
-                // its doc comment.
-                Picker("Theme", selection: presetBinding) {
-                    ForEach(ThemePresets.all) { preset in
-                        Text(preset.name).tag(preset.id)
-                    }
-                    Text("Custom").tag(ThemePresets.customID)
+                // `ThemedMenuPicker` (Menu-based, not native `Picker` box
+                // chrome) so the visible button text can be exactly
+                // `theme.text` — e.g. Matrix's green, not a generic native
+                // white/gray. A plain `Picker` ignores `.foregroundStyle`
+                // applied to it (tried before, reported hard to read).
+                // `ColorSwatchPicker`'s swatches are similarly custom-drawn
+                // rather than native chrome — see its doc comment.
+                HStack {
+                    Text("Theme").foregroundStyle(theme.text)
+                    Spacer()
+                    ThemedMenuPicker(
+                        selection: themeSelectionBinding,
+                        options: themeOptions
+                    )
                 }
+                // Editing any swatch below while a built-in preset is active
+                // forks a new custom theme automatically (see
+                // `ThemeStore.ensureEditableTheme`) — these buttons cover
+                // the deliberate paths: naming a duplicate up front, and
+                // managing a custom theme once one's active.
+                HStack(spacing: 14) {
+                    Button("Duplicate…") {
+                        duplicateName = "\(currentThemeName) Copy"
+                        isShowingDuplicatePrompt = true
+                    }
+                    if let current = currentCustomTheme {
+                        Button("Rename…") {
+                            renameText = current.name
+                            isShowingRenamePrompt = true
+                        }
+                        Button("Delete", role: .destructive) {
+                            theme.delete(current.id)
+                        }
+                        if current.basedOn != nil {
+                            Button("Reset") {
+                                theme.reset(current.id)
+                            }
+                        }
+                    }
+                }
+                .font(.caption)
                 ColorSwatchPicker(title: "Background", selection: Binding(
                     get: { theme.background },
                     set: { theme.setBackground($0) }
@@ -135,6 +169,21 @@ struct SettingsView: View {
 
             Section {
                 HStack {
+                    Text("Clear Clipboard History").foregroundStyle(theme.text)
+                    Spacer()
+                    Button("Clear…", role: .destructive) {
+                        isShowingClearHistoryConfirmation = true
+                    }
+                }
+            } header: {
+                sectionHeader("Data")
+            } footer: {
+                Text("Removes clipboard history. Pinned and favorited items are kept.")
+                    .foregroundStyle(theme.text.opacity(0.45))
+            }
+
+            Section {
+                HStack {
                     Text("Version \(UpdateChecker.currentVersion())")
                         .foregroundStyle(theme.text)
                     Spacer()
@@ -146,21 +195,6 @@ struct SettingsView: View {
                 if let installUpdateError {
                     Text(installUpdateError).foregroundStyle(.red)
                 }
-            }
-
-            Section {
-                HStack {
-                    Text("Clear Clipboard History").foregroundStyle(theme.text)
-                    Spacer()
-                    Button("Clear…", role: .destructive) {
-                        isShowingClearHistoryConfirmation = true
-                    }
-                }
-            } header: {
-                sectionHeader("Data")
-            } footer: {
-                Text("Removes clipboard history. Pinned and favorited items are kept.")
-                    .foregroundStyle(theme.text.opacity(0.6))
             }
         }
         .formStyle(.grouped)
@@ -177,6 +211,24 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Pinned and favorited items are kept. This can't be undone.")
+        }
+        .alert("Duplicate Theme", isPresented: $isShowingDuplicatePrompt) {
+            TextField("Name", text: $duplicateName)
+            Button("Create") {
+                theme.duplicateCurrentTheme(named: duplicateName.trimmingCharacters(in: .whitespaces).isEmpty ? "Custom" : duplicateName)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Creates a copy of the current theme's colors that you can edit freely, without changing the original.")
+        }
+        .alert("Rename Theme", isPresented: $isShowingRenamePrompt) {
+            TextField("Name", text: $renameText)
+            Button("Save") {
+                if let current = currentCustomTheme {
+                    theme.rename(current.id, to: renameText.trimmingCharacters(in: .whitespaces))
+                }
+            }
+            Button("Cancel", role: .cancel) {}
         }
         .onChange(of: openPanelBinding) { _, newValue in
             HotKeyManager.shared.updateBinding(newValue)
@@ -198,7 +250,7 @@ struct SettingsView: View {
     }
 
     private func sectionHeader(_ title: String) -> some View {
-        Text(title).foregroundStyle(theme.text.opacity(0.6))
+        Text(title).foregroundStyle(theme.text.opacity(0.45))
     }
 
     private func themedToggle(_ title: String, isOn: Binding<Bool>) -> some View {
@@ -231,17 +283,29 @@ struct SettingsView: View {
         }
     }
 
-    private var presetBinding: Binding<String> {
+    private var themeSelectionBinding: Binding<String> {
         Binding(
-            get: { theme.presetID },
+            get: { theme.selectedID },
             set: { newID in
-                if newID == ThemePresets.customID {
-                    theme.selectCustom()
+                if let custom = theme.customThemes.first(where: { $0.id.uuidString == newID }) {
+                    theme.select(custom)
                 } else if let preset = ThemePresets.all.first(where: { $0.id == newID }) {
                     theme.apply(preset)
                 }
             }
         )
+    }
+
+    private var themeOptions: [(label: String, value: String)] {
+        ThemePresets.all.map { ($0.name, $0.id) } + theme.customThemes.map { ($0.name, $0.id.uuidString) }
+    }
+
+    private var currentCustomTheme: CustomTheme? {
+        theme.customThemes.first { $0.id.uuidString == theme.selectedID }
+    }
+
+    private var currentThemeName: String {
+        currentCustomTheme?.name ?? ThemePresets.all.first { $0.id == theme.selectedID }?.name ?? "Theme"
     }
 
     @ViewBuilder
@@ -254,11 +318,11 @@ struct SettingsView: View {
             case .none:
                 Button("Check for Updates") { checkForUpdate() }
             case .upToDate:
-                Text("Up to date").foregroundStyle(theme.text.opacity(0.6))
+                Text("Up to date").foregroundStyle(theme.text.opacity(0.45))
                 Button("Check Again") { checkForUpdate() }
             case .updateAvailable(let info):
                 if isInstallingUpdate {
-                    Text("Installing…").foregroundStyle(theme.text.opacity(0.6))
+                    Text("Installing…").foregroundStyle(theme.text.opacity(0.45))
                     ProgressView().controlSize(.small)
                 } else {
                     Text("v\(info.version) available").foregroundStyle(.orange)

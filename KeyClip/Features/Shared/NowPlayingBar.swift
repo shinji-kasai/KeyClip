@@ -45,7 +45,7 @@ struct NowPlayingBar: View {
                         if let artist = track.artist {
                             Text(artist)
                                 .font(.caption)
-                                .foregroundStyle(theme.text.opacity(0.6))
+                                .foregroundStyle(theme.text.opacity(0.45))
                                 .lineLimit(1)
                         }
                     }
@@ -103,7 +103,7 @@ struct NowPlayingBar: View {
                     Text(Self.formatTime(duration))
                 }
                 .font(.caption2)
-                .foregroundStyle(theme.text.opacity(0.6))
+                .foregroundStyle(theme.text.opacity(0.45))
             }
         }
     }

@@ -155,44 +155,84 @@ enum ThemePresets {
         system, light, dark, ocean, forest, orange, cream, turquoise, matrix,
         dracula, claude, github, ubuntu, oneDark,
     ]
-    static let customID = "custom"
+}
+
+/// Plain RGBA storage for a `Color`, since `Color` itself isn't `Codable`.
+struct RGBAColor: Codable, Hashable {
+    var red: Double
+    var green: Double
+    var blue: Double
+    var alpha: Double
+
+    init(_ color: Color) {
+        let rgb = NSColor(color).usingColorSpace(.deviceRGB) ?? NSColor(white: 0, alpha: 1)
+        red = rgb.redComponent
+        green = rgb.greenComponent
+        blue = rgb.blueComponent
+        alpha = rgb.alphaComponent
+    }
+
+    var color: Color { Color(red: red, green: green, blue: blue, opacity: alpha) }
+}
+
+/// A user-created theme — unlike the 14 built-in `ThemePreset`s, these are
+/// arbitrary in number, named, and mutable in place (editing one updates
+/// its own stored colors, not a shared anonymous "Custom" slot the way this
+/// used to work).
+struct CustomTheme: Identifiable, Codable, Hashable {
+    let id: UUID
+    var name: String
+    var background: RGBAColor
+    var text: RGBAColor
+    var hover: RGBAColor
+    var selected: RGBAColor
+    var selectedText: RGBAColor
+    /// The built-in preset this was duplicated from, if any — lets `Reset`
+    /// snap this theme's colors back to that preset's originals without
+    /// losing its id/name/place in the list. `nil` for a theme duplicated
+    /// from another custom theme, or created with no such lineage.
+    var basedOn: String?
 }
 
 /// Live theme state, shared app-wide via `.environmentObject` from
-/// `FloatingPanel`. Selecting a preset overwrites all four colors; editing
-/// any individual color via a `ColorPicker` switches to (and persists as)
-/// a "custom" theme built from whichever preset you started from.
+/// `FloatingPanel`. Selecting a built-in preset (`apply(_:)`) never mutates
+/// that preset — its colors are always the same next time you pick it,
+/// i.e. always "resettable" by construction. Editing any individual color
+/// while a built-in preset is active instead forks a new named
+/// `CustomTheme` seeded from the current colors (`ensureEditableTheme()`)
+/// and edits land there; editing while an existing custom theme is active
+/// updates that theme in place. `customThemes` persists as JSON, replacing
+/// the single anonymous "Custom" slot this used to be.
 final class ThemeStore: ObservableObject {
     static let shared = ThemeStore()
 
-    @Published private(set) var presetID: String
+    @Published private(set) var selectedID: String
     @Published var background: Color
     @Published var text: Color
     @Published var hover: Color
     @Published var selected: Color
     @Published var selectedText: Color
+    @Published private(set) var customThemes: [CustomTheme]
 
     private enum Keys {
-        static let presetID = "theme.presetID"
-        static let background = "theme.custom.background"
-        static let text = "theme.custom.text"
-        static let hover = "theme.custom.hover"
-        static let selected = "theme.custom.selected"
-        static let selectedText = "theme.custom.selectedText"
+        static let selectedID = "theme.selectedID"
+        static let customThemes = "theme.customThemes"
     }
 
     private init() {
-        let storedID = UserDefaults.standard.string(forKey: Keys.presetID) ?? ThemePresets.system.id
-        if storedID == ThemePresets.customID {
-            presetID = storedID
-            background = Self.loadColor(Keys.background) ?? ThemePresets.system.background
-            text = Self.loadColor(Keys.text) ?? ThemePresets.system.text
-            hover = Self.loadColor(Keys.hover) ?? ThemePresets.system.hover
-            selected = Self.loadColor(Keys.selected) ?? ThemePresets.system.selected
-            selectedText = Self.loadColor(Keys.selectedText) ?? ThemePresets.system.selectedText
+        let loadedCustomThemes = Self.loadCustomThemes()
+        customThemes = loadedCustomThemes
+        let storedID = UserDefaults.standard.string(forKey: Keys.selectedID) ?? ThemePresets.system.id
+        if let custom = loadedCustomThemes.first(where: { $0.id.uuidString == storedID }) {
+            selectedID = storedID
+            background = custom.background.color
+            text = custom.text.color
+            hover = custom.hover.color
+            selected = custom.selected.color
+            selectedText = custom.selectedText.color
         } else {
             let preset = ThemePresets.all.first { $0.id == storedID } ?? ThemePresets.system
-            presetID = preset.id
+            selectedID = preset.id
             background = preset.background
             text = preset.text
             hover = preset.hover
@@ -202,8 +242,8 @@ final class ThemeStore: ObservableObject {
     }
 
     func apply(_ preset: ThemePreset) {
-        presetID = preset.id
-        UserDefaults.standard.set(preset.id, forKey: Keys.presetID)
+        selectedID = preset.id
+        UserDefaults.standard.set(preset.id, forKey: Keys.selectedID)
         background = preset.background
         text = preset.text
         hover = preset.hover
@@ -211,56 +251,110 @@ final class ThemeStore: ObservableObject {
         selectedText = preset.selectedText
     }
 
-    /// Explicit switch to "Custom" from the Theme picker itself. `Custom`
-    /// isn't a member of `ThemePresets.all` (it has no fixed colors of its
-    /// own), so `apply(_:)` can't handle it — picking it there used to just
-    /// silently do nothing. Restores whichever custom colors were last
-    /// saved, if any; otherwise seeds from whatever's currently showing (via
-    /// `markCustom()`, same seeding `setX(_:)` does) so the color rows don't
-    /// jump to something unrelated the moment you pick "Custom".
-    func selectCustom() {
-        guard presetID != ThemePresets.customID else { return }
-        guard let savedBackground = Self.loadColor(Keys.background) else {
-            markCustom()
-            return
+    func select(_ custom: CustomTheme) {
+        selectedID = custom.id.uuidString
+        UserDefaults.standard.set(selectedID, forKey: Keys.selectedID)
+        background = custom.background.color
+        text = custom.text.color
+        hover = custom.hover.color
+        selected = custom.selected.color
+        selectedText = custom.selectedText.color
+    }
+
+    /// Creates a new named theme from whatever colors are *currently*
+    /// showing — i.e. duplicates the active theme, built-in or custom —
+    /// selects it, and returns it.
+    @discardableResult
+    func duplicateCurrentTheme(named name: String) -> CustomTheme {
+        let basedOn = customThemes.first { $0.id.uuidString == selectedID }?.basedOn
+            ?? ThemePresets.all.first { $0.id == selectedID }?.id
+        let created = CustomTheme(
+            id: UUID(), name: uniqueName(name),
+            background: RGBAColor(background), text: RGBAColor(text),
+            hover: RGBAColor(hover), selected: RGBAColor(selected),
+            selectedText: RGBAColor(selectedText), basedOn: basedOn
+        )
+        customThemes.append(created)
+        persistCustomThemes()
+        select(created)
+        return created
+    }
+
+    func rename(_ id: UUID, to newName: String) {
+        guard let index = customThemes.firstIndex(where: { $0.id == id }), !newName.isEmpty else { return }
+        customThemes[index].name = newName
+        persistCustomThemes()
+    }
+
+    /// Falls back to System if the deleted theme was the active one.
+    func delete(_ id: UUID) {
+        customThemes.removeAll { $0.id == id }
+        persistCustomThemes()
+        if selectedID == id.uuidString {
+            apply(ThemePresets.system)
         }
-        presetID = ThemePresets.customID
-        UserDefaults.standard.set(ThemePresets.customID, forKey: Keys.presetID)
-        background = savedBackground
-        text = Self.loadColor(Keys.text) ?? text
-        hover = Self.loadColor(Keys.hover) ?? hover
-        selected = Self.loadColor(Keys.selected) ?? selected
-        selectedText = Self.loadColor(Keys.selectedText) ?? selectedText
+    }
+
+    /// Snaps a custom theme's colors back to the built-in preset it was
+    /// duplicated from — only available when `basedOn` is set (a theme
+    /// created from scratch, or duplicated from another custom theme, has
+    /// nothing to reset to).
+    func reset(_ id: UUID) {
+        guard let index = customThemes.firstIndex(where: { $0.id == id }),
+              let basedOnID = customThemes[index].basedOn,
+              let preset = ThemePresets.all.first(where: { $0.id == basedOnID }) else { return }
+        customThemes[index].background = RGBAColor(preset.background)
+        customThemes[index].text = RGBAColor(preset.text)
+        customThemes[index].hover = RGBAColor(preset.hover)
+        customThemes[index].selected = RGBAColor(preset.selected)
+        customThemes[index].selectedText = RGBAColor(preset.selectedText)
+        persistCustomThemes()
+        if selectedID == id.uuidString {
+            select(customThemes[index])
+        }
     }
 
     func setBackground(_ color: Color) {
-        markCustom()
+        let id = ensureEditableTheme()
         background = color
-        Self.saveColor(color, key: Keys.background)
+        update(id) { $0.background = RGBAColor(color) }
     }
 
+    /// Also re-derives `hover`/`selected` from the new text color, rather
+    /// than leaving them at whatever unrelated color they happened to be
+    /// before — an accent picked up from a previous preset (or an earlier,
+    /// now-abandoned text color) reads as a random color slapped on top of
+    /// the new text rather than belonging to the same palette. Still
+    /// independently overridable afterward via `setHover`/`setSelected` if
+    /// a specific accent hue is wanted instead.
     func setText(_ color: Color) {
-        markCustom()
+        let id = ensureEditableTheme()
         text = color
-        Self.saveColor(color, key: Keys.text)
+        hover = color.opacity(0.15)
+        selected = color.opacity(0.3)
+        update(id) {
+            $0.text = RGBAColor(color)
+            $0.hover = RGBAColor(hover)
+            $0.selected = RGBAColor(selected)
+        }
     }
 
     func setHover(_ color: Color) {
-        markCustom()
+        let id = ensureEditableTheme()
         hover = color
-        Self.saveColor(color, key: Keys.hover)
+        update(id) { $0.hover = RGBAColor(color) }
     }
 
     func setSelected(_ color: Color) {
-        markCustom()
+        let id = ensureEditableTheme()
         selected = color
-        Self.saveColor(color, key: Keys.selected)
+        update(id) { $0.selected = RGBAColor(color) }
     }
 
     func setSelectedText(_ color: Color) {
-        markCustom()
+        let id = ensureEditableTheme()
         selectedText = color
-        Self.saveColor(color, key: Keys.selectedText)
+        update(id) { $0.selectedText = RGBAColor(color) }
     }
 
     /// Whether native AppKit-backed chrome (the `Picker`/`ColorPicker` boxes,
@@ -276,37 +370,54 @@ final class ThemeStore: ObservableObject {
     /// preset so it keeps following the real system appearance instead of
     /// being pinned to one.
     var preferredColorScheme: ColorScheme? {
-        guard presetID != ThemePresets.system.id else { return nil }
-        guard let rgb = NSColor(background).usingColorSpace(.deviceRGB) else { return nil }
-        let luminance = 0.2126 * rgb.redComponent + 0.7152 * rgb.greenComponent + 0.0722 * rgb.blueComponent
+        guard selectedID != ThemePresets.system.id else { return nil }
+        guard let luminance = Self.luminance(background) else { return nil }
         return luminance < 0.5 ? .dark : .light
     }
 
-    private func markCustom() {
-        guard presetID != ThemePresets.customID else { return }
-        presetID = ThemePresets.customID
-        UserDefaults.standard.set(ThemePresets.customID, forKey: Keys.presetID)
-        // Seed all custom slots from whatever's currently showing, so
-        // switching one color doesn't leave the others unset.
-        Self.saveColor(background, key: Keys.background)
-        Self.saveColor(text, key: Keys.text)
-        Self.saveColor(hover, key: Keys.hover)
-        Self.saveColor(selected, key: Keys.selected)
-        Self.saveColor(selectedText, key: Keys.selectedText)
+    private static func luminance(_ color: Color) -> Double? {
+        guard let rgb = NSColor(color).usingColorSpace(.deviceRGB) else { return nil }
+        return 0.2126 * rgb.redComponent + 0.7152 * rgb.greenComponent + 0.0722 * rgb.blueComponent
     }
 
-    private static func saveColor(_ color: Color, key: String) {
-        guard let rgba = NSColor(color).usingColorSpace(.deviceRGB) else { return }
-        let components = [rgba.redComponent, rgba.greenComponent, rgba.blueComponent, rgba.alphaComponent]
-        if let data = try? JSONEncoder().encode(components) {
-            UserDefaults.standard.set(data, forKey: key)
+    /// If the active theme is already a custom one, edits land there
+    /// directly. Otherwise (a built-in preset is active) forks a new custom
+    /// theme seeded from the current colors — built-ins themselves are
+    /// never mutated, so re-selecting one always gives its original colors
+    /// back. Only forks once per "session" of edits: after the first fork,
+    /// `selectedID` already points at the new theme, so subsequent edits in
+    /// the same sitting find and reuse it instead of forking again.
+    private func ensureEditableTheme() -> UUID {
+        if let existing = customThemes.first(where: { $0.id.uuidString == selectedID }) {
+            return existing.id
         }
+        let baseName = ThemePresets.all.first { $0.id == selectedID }?.name ?? "Custom"
+        return duplicateCurrentTheme(named: "\(baseName) Copy").id
     }
 
-    private static func loadColor(_ key: String) -> Color? {
-        guard let data = UserDefaults.standard.data(forKey: key),
-              let components = try? JSONDecoder().decode([Double].self, from: data),
-              components.count == 4 else { return nil }
-        return Color(red: components[0], green: components[1], blue: components[2], opacity: components[3])
+    private func update(_ id: UUID, _ mutate: (inout CustomTheme) -> Void) {
+        guard let index = customThemes.firstIndex(where: { $0.id == id }) else { return }
+        mutate(&customThemes[index])
+        persistCustomThemes()
+    }
+
+    private func uniqueName(_ base: String) -> String {
+        guard customThemes.contains(where: { $0.name == base }) else { return base }
+        var counter = 2
+        while customThemes.contains(where: { $0.name == "\(base) \(counter)" }) {
+            counter += 1
+        }
+        return "\(base) \(counter)"
+    }
+
+    private func persistCustomThemes() {
+        guard let data = try? JSONEncoder().encode(customThemes) else { return }
+        UserDefaults.standard.set(data, forKey: Keys.customThemes)
+    }
+
+    private static func loadCustomThemes() -> [CustomTheme] {
+        guard let data = UserDefaults.standard.data(forKey: Keys.customThemes),
+              let decoded = try? JSONDecoder().decode([CustomTheme].self, from: data) else { return [] }
+        return decoded
     }
 }

@@ -46,14 +46,12 @@ struct SnippetsView: View {
         .sheet(isPresented: $isPresentingEditor) {
             SnippetEditorView(editing: editingSnippet)
         }
+        .typeToSearch(text: $searchText)
     }
 
     private var header: some View {
         HStack {
-            Image(systemName: "magnifyingglass").foregroundStyle(theme.text.opacity(0.6))
-            TextField("Search...", text: $searchText)
-                .textFieldStyle(.plain)
-                .foregroundStyle(theme.text)
+            CollapsibleSearchField(text: $searchText)
             Spacer()
             Button {
                 editingSnippet = nil
@@ -72,9 +70,9 @@ struct SnippetsView: View {
         VStack(spacing: 8) {
             Image(systemName: "text.badge.plus")
                 .font(.system(size: 32))
-                .foregroundStyle(theme.text.opacity(0.6))
+                .foregroundStyle(theme.text.opacity(0.45))
             Text("No snippets yet — add one to get started")
-                .foregroundStyle(theme.text.opacity(0.6))
+                .foregroundStyle(theme.text.opacity(0.45))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(theme.background)
@@ -88,7 +86,7 @@ struct SnippetsView: View {
                     Section {
                         ForEach(group.items) { row(for: $0) }
                     } header: {
-                        Text(group.category).foregroundStyle(theme.text.opacity(0.6))
+                        Text(group.category).foregroundStyle(theme.text.opacity(0.45))
                     }
                 }
             }
@@ -104,6 +102,7 @@ struct SnippetsView: View {
     private func row(for snippet: Snippet) -> some View {
         SnippetRow(
             snippet: snippet,
+            searchText: searchText,
             onSelect: { copyToClipboard(snippet.content) },
             onEdit: {
                 editingSnippet = snippet
@@ -124,6 +123,7 @@ struct SnippetsView: View {
 private struct SnippetRow: View {
     @EnvironmentObject private var theme: ThemeStore
     let snippet: Snippet
+    let searchText: String
     let onSelect: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
@@ -131,13 +131,13 @@ private struct SnippetRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(snippet.trigger)
+            HighlightedText(snippet.trigger, matching: searchText)
                 .font(.system(.body, design: .monospaced))
                 .fontWeight(.semibold)
                 .foregroundStyle(theme.text)
-            Text(snippet.content)
+            HighlightedText(snippet.content, matching: searchText)
                 .font(.caption)
-                .foregroundStyle(theme.text.opacity(0.6))
+                .foregroundStyle(theme.text.opacity(0.45))
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

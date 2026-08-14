@@ -77,17 +77,13 @@ struct SymbolsView: View {
             }
         }
         .background(theme.background)
+        .typeToSearch(text: $searchText)
     }
 
     private var searchField: some View {
-        HStack {
-            Image(systemName: "magnifyingglass").foregroundStyle(theme.text.opacity(0.6))
-            TextField("Search symbols...", text: $searchText)
-                .textFieldStyle(.plain)
-                .foregroundStyle(theme.text)
-        }
-        .background(theme.background)
-        .padding(8)
+        CollapsibleSearchField(text: $searchText, placeholder: "Search symbols...")
+            .background(theme.background)
+            .padding(8)
     }
 
     private func labeledSection(_ title: String, items: [SymbolEntry]) -> some View {
@@ -95,7 +91,7 @@ struct SymbolsView: View {
             Text(title)
                 .font(.caption)
                 .fontWeight(.semibold)
-                .foregroundStyle(theme.text.opacity(0.6))
+                .foregroundStyle(theme.text.opacity(0.45))
             grid(for: items)
         }
     }
@@ -108,11 +104,11 @@ struct SymbolsView: View {
                 HStack(spacing: 4) {
                     Image(systemName: isExpanded(category) ? "chevron.down" : "chevron.right")
                         .font(.caption2)
-                        .foregroundStyle(theme.text.opacity(0.6))
+                        .foregroundStyle(theme.text.opacity(0.45))
                     Text(category.rawValue)
                         .font(.caption)
                         .fontWeight(.semibold)
-                        .foregroundStyle(theme.text.opacity(0.6))
+                        .foregroundStyle(theme.text.opacity(0.45))
                     Spacer()
                 }
                 .contentShape(Rectangle())

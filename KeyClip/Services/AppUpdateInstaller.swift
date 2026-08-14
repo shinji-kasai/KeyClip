@@ -14,6 +14,18 @@ import AppKit
 /// app rather than a Sparkle-managed one; it means anyone who can put a file
 /// at the release asset URL controls what gets installed, but adds no key
 /// management or CI secret to maintain.
+///
+/// **This swap is a real reinstall, not a patch** — the file at
+/// `Bundle.main.bundlePath` gets fully replaced with a separate CI build,
+/// which is ad-hoc signed (`CODE_SIGN_IDENTITY="-"`, no stable Developer
+/// ID). TCC ties Accessibility/Input Monitoring grants to the app's exact
+/// code signature, and every ad-hoc build has a different one — confirmed
+/// firsthand the same day this was built, reinstalling manually between
+/// 1.0.4/1.0.5/1.0.6 silently broke auto-paste each time until Accessibility
+/// was re-granted (see `CLAUDE.md`'s Build & Run step 4 / TextInjector's
+/// doc comment). So: after using this updater, Accessibility and Input
+/// Monitoring may need to be re-granted in System Settings even though
+/// they were already on before — that's expected, not a bug in this file.
 @MainActor
 enum AppUpdateInstaller {
     enum InstallError: Error {

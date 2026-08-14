@@ -35,26 +35,22 @@ struct ClipboardView: View {
                 list
             }
         }
+        .typeToSearch(text: $searchText)
     }
 
     private var searchField: some View {
-        HStack {
-            Image(systemName: "magnifyingglass").foregroundStyle(theme.text.opacity(0.6))
-            TextField("Search...", text: $searchText)
-                .textFieldStyle(.plain)
-                .foregroundStyle(theme.text)
-        }
-        .padding(8)
-        .background(theme.background)
+        CollapsibleSearchField(text: $searchText)
+            .padding(8)
+            .background(theme.background)
     }
 
     private var emptyState: some View {
         VStack(spacing: 8) {
             Image(systemName: "doc.on.clipboard")
                 .font(.system(size: 32))
-                .foregroundStyle(theme.text.opacity(0.6))
+                .foregroundStyle(theme.text.opacity(0.45))
             Text("Copy something to see it here")
-                .foregroundStyle(theme.text.opacity(0.6))
+                .foregroundStyle(theme.text.opacity(0.45))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(theme.background)
@@ -89,12 +85,13 @@ struct ClipboardView: View {
     }
 
     private func sectionHeader(_ title: String) -> some View {
-        Text(title).foregroundStyle(theme.text.opacity(0.6))
+        Text(title).foregroundStyle(theme.text.opacity(0.45))
     }
 
     private func row(for item: ClipboardItem) -> some View {
         ClipboardRow(
             item: item,
+            searchText: searchText,
             onSelect: { select(item) },
             onToggleFavorite: { toggleFavorite(item) },
             onTogglePin: { togglePin(item) },
@@ -124,6 +121,7 @@ struct ClipboardView: View {
 private struct ClipboardRow: View {
     @EnvironmentObject private var theme: ThemeStore
     let item: ClipboardItem
+    let searchText: String
     let onSelect: () -> Void
     let onToggleFavorite: () -> Void
     let onTogglePin: () -> Void
@@ -132,7 +130,7 @@ private struct ClipboardRow: View {
 
     var body: some View {
         HStack {
-            Text(item.content)
+            HighlightedText(item.content, matching: searchText)
                 .lineLimit(2)
                 .truncationMode(.tail)
                 .foregroundStyle(theme.text)

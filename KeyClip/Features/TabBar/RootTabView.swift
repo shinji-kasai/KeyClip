@@ -51,7 +51,7 @@ struct RootTabView: View {
                 .foregroundStyle(theme.text)
             Text(appVersion)
                 .font(.caption)
-                .foregroundStyle(theme.text.opacity(0.6))
+                .foregroundStyle(theme.text.opacity(0.45))
             Spacer()
         }
         .padding(.horizontal, 12)

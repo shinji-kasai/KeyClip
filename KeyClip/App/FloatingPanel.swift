@@ -6,10 +6,13 @@
 import AppKit
 import SwiftUI
 import SwiftData
+import Combine
 
 /// A borderless, non-activating panel that overlays the frontmost app without
 /// stealing its activation (mirrors Spotlight/Raycast-style summon panels).
 final class FloatingPanel: NSPanel {
+    private var themeCancellable: AnyCancellable?
+
     convenience init(
         modelContainer: ModelContainer,
         inject: @escaping (String) -> Void,
@@ -39,6 +42,35 @@ final class FloatingPanel: NSPanel {
             .environmentObject(ThemeStore.shared)
             .environmentObject(TabSelectionStore.shared)
         contentView = NSHostingView(rootView: rootView)
+
+        // `RootTabView`'s `.preferredColorScheme()` SwiftUI modifier sets the
+        // *environment* color scheme for SwiftUI-rendered content, but
+        // doesn't reliably cascade to native AppKit-bridged controls (a
+        // `Picker`'s underlying pop-up button, in particular) when applied
+        // inside the view hierarchy rather than at the window/scene level —
+        // which is exactly how this app is built (a manually-hosted
+        // `NSPanel`, not a `WindowGroup` scene). Setting the *window's*
+        // `appearance` directly is the authoritative source native chrome
+        // actually consults, so a dark custom theme reliably gets a
+        // dark-styled Picker/dropdown instead of stale default-appearance
+        // (black-on-dark) text. Reacts to `$background`, not `$selectedID`,
+        // since a custom theme's background can change via a swatch edit
+        // without `selectedID` itself changing (still the same theme's id
+        // throughout an editing session).
+        themeCancellable = ThemeStore.shared.$background
+            .sink { [weak self] _ in
+                self?.updateAppearance(colorScheme: ThemeStore.shared.preferredColorScheme)
+            }
+        updateAppearance(colorScheme: ThemeStore.shared.preferredColorScheme)
+    }
+
+    private func updateAppearance(colorScheme: ColorScheme?) {
+        switch colorScheme {
+        case .light: appearance = NSAppearance(named: .aqua)
+        case .dark: appearance = NSAppearance(named: .darkAqua)
+        case .none: appearance = nil
+        @unknown default: appearance = nil
+        }
     }
 
     override var canBecomeKey: Bool { true }
