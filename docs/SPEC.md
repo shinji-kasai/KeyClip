@@ -30,6 +30,14 @@ bar — unused features are never left cluttering the UI.
   the panel was summoned.
 - Beyond raw history, supports Favorites/Pinned/Frequently-Used items saved
   separately (e.g. canned replies like "Thank you for your help.").
+- Captures copied images too, not just text — shown as a thumbnail in the
+  list, pasted back as image data. Kept to its own smaller history cap
+  (30 vs. 200 for text), since each image is a whole external file rather
+  than a few bytes.
+- **Capture Text**: drag-select a screen region (or click a window) and OCR
+  whatever text is visible there straight into the clipboard — for text
+  that isn't otherwise selectable (a scanned PDF, a screenshot, an app that
+  doesn't support text selection). Needs Screen Recording permission.
 
 ## 3. Snippets
 

@@ -22,6 +22,7 @@ struct SettingsView: View {
 
     @State private var isAccessibilityTrusted = AccessibilityPermission.isTrusted(prompt: false)
     @State private var isInputMonitoringTrusted = InputMonitoringPermission.isTrusted
+    @State private var isScreenRecordingTrusted = ScreenRecordingPermission.isTrusted
     @State private var updateCheckResult: UpdateCheckResult?
     @State private var isCheckingForUpdate = false
     @State private var isInstallingUpdate = false
@@ -163,6 +164,18 @@ struct SettingsView: View {
                         }
                     }
                 }
+                HStack {
+                    Image(systemName: isScreenRecordingTrusted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .foregroundStyle(isScreenRecordingTrusted ? .green : .orange)
+                    Text(isScreenRecordingTrusted ? "Screen Recording access granted" : "Screen Recording access required for Capture Text")
+                        .foregroundStyle(theme.text)
+                    Spacer()
+                    if !isScreenRecordingTrusted {
+                        Button("Grant Access") {
+                            requestScreenRecordingAccess()
+                        }
+                    }
+                }
             } header: {
                 sectionHeader("Permissions")
             }
@@ -246,6 +259,7 @@ struct SettingsView: View {
         .onAppear {
             isAccessibilityTrusted = AccessibilityPermission.isTrusted(prompt: false)
             isInputMonitoringTrusted = InputMonitoringPermission.isTrusted
+            isScreenRecordingTrusted = ScreenRecordingPermission.isTrusted
         }
     }
 
@@ -382,6 +396,14 @@ struct SettingsView: View {
             SnippetExpansionEngine.shared.start(modelContext: modelContext)
         } else {
             InputMonitoringPermission.openSystemSettings()
+        }
+    }
+
+    private func requestScreenRecordingAccess() {
+        if ScreenRecordingPermission.requestAccess() {
+            isScreenRecordingTrusted = true
+        } else {
+            ScreenRecordingPermission.openSystemSettings()
         }
     }
 }

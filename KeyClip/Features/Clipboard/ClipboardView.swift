@@ -5,11 +5,14 @@
 
 import SwiftUI
 import SwiftData
+import AppKit
 
 struct ClipboardView: View {
     @EnvironmentObject private var theme: ThemeStore
     @EnvironmentObject private var tabSelection: TabSelectionStore
     @Environment(\.copyToClipboard) private var copyToClipboard
+    @Environment(\.copyImageToClipboard) private var copyImageToClipboard
+    @Environment(\.captureText) private var captureText
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \ClipboardItem.createdAt, order: .reverse) private var items: [ClipboardItem]
     @State private var searchText = ""
@@ -39,9 +42,17 @@ struct ClipboardView: View {
     }
 
     private var searchField: some View {
-        CollapsibleSearchField(text: $searchText)
-            .padding(8)
-            .background(theme.background)
+        HStack(spacing: 8) {
+            CollapsibleSearchField(text: $searchText)
+            Button(action: captureText) {
+                Image(systemName: "text.viewfinder")
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(theme.text.opacity(0.6))
+            .help("Capture Text from Screen…")
+        }
+        .padding(8)
+        .background(theme.background)
     }
 
     private var emptyState: some View {
@@ -102,7 +113,11 @@ struct ClipboardView: View {
 
     private func select(_ item: ClipboardItem) {
         item.useCount += 1
-        copyToClipboard(item.content)
+        if item.contentType == .image, let imageData = item.imageData {
+            copyImageToClipboard(imageData)
+        } else {
+            copyToClipboard(item.content)
+        }
     }
 
     private func togglePin(_ item: ClipboardItem) {
@@ -128,12 +143,25 @@ private struct ClipboardRow: View {
     let onDelete: () -> Void
     @State private var isHovered = false
 
-    var body: some View {
-        HStack {
+    @ViewBuilder
+    private var content: some View {
+        if item.contentType == .image, let imageData = item.imageData, let nsImage = NSImage(data: imageData) {
+            Image(nsImage: nsImage)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(maxHeight: 60)
+                .cornerRadius(4)
+        } else {
             HighlightedText(item.content, matching: searchText)
                 .lineLimit(2)
                 .truncationMode(.tail)
                 .foregroundStyle(theme.text)
+        }
+    }
+
+    var body: some View {
+        HStack {
+            content
             Spacer()
             Button(action: onToggleFavorite) {
                 Image(systemName: item.isFavorite ? "star.fill" : "star")

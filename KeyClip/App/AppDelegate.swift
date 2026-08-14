@@ -62,8 +62,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             copyToClipboard: { [weak self] text in
                 self?.copyAndHide(text)
             },
+            copyImageToClipboard: { [weak self] data in
+                self?.copyImageAndHide(data)
+            },
             hidePanel: { [weak self] in
                 self?.panel?.hideUnlessPresentingSheet()
+            },
+            captureText: { [weak self] in
+                self?.captureTextAndHide()
             }
         )
     }
@@ -103,6 +109,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showStatusMenu() {
         let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Capture Text…", action: #selector(captureTextFromMenu), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdatesFromMenu), keyEquivalent: ""))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit KeyClip", action: #selector(quitApp), keyEquivalent: "q"))
@@ -116,6 +123,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func quitApp() {
         NSApp.terminate(nil)
+    }
+
+    /// Fires against `NSWorkspace.shared.frontmostApplication` directly, not
+    /// `previouslyFrontmostApp` — mirrors how the window-snap shortcuts work
+    /// with the panel closed, since this menu item doesn't require the
+    /// panel to be open at all.
+    @objc private func captureTextFromMenu() {
+        let target = NSWorkspace.shared.frontmostApplication
+        let autoPasteEnabled = UserDefaults.standard.object(forKey: TextInjector.autoPasteDefaultsKey) as? Bool ?? true
+        TextCaptureService.captureAndRecognizeText(target: target, autoPaste: autoPasteEnabled)
     }
 
     @objc private func checkForUpdatesFromMenu() {
@@ -211,6 +228,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             target?.activate(options: [])
         }
+    }
+
+    /// Same shape as `copyAndHide`, for an image clipboard row — writes PNG
+    /// data to the pasteboard instead of a string, then reuses the exact
+    /// same auto-paste path (`TextInjector.pasteFromClipboard` just posts a
+    /// synthetic ⌘V and doesn't care what's actually on the pasteboard).
+    private func copyImageAndHide(_ data: Data) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setData(data, forType: .png)
+        let target = previouslyFrontmostApp
+        panel?.hideUnlessPresentingSheet()
+        let autoPasteEnabled = UserDefaults.standard.object(forKey: TextInjector.autoPasteDefaultsKey) as? Bool ?? true
+        if autoPasteEnabled {
+            TextInjector.pasteFromClipboard(into: target)
+        } else {
+            target?.activate(options: [])
+        }
+    }
+
+    /// Same target-capture shape as `copyAndHide`/`injectAndHide` — hides
+    /// the panel first so it's not in the way of the region/window
+    /// selection UI, then hands off to `TextCaptureService`.
+    private func captureTextAndHide() {
+        let target = previouslyFrontmostApp
+        panel?.hideUnlessPresentingSheet()
+        let autoPasteEnabled = UserDefaults.standard.object(forKey: TextInjector.autoPasteDefaultsKey) as? Bool ?? true
+        TextCaptureService.captureAndRecognizeText(target: target, autoPaste: autoPasteEnabled)
     }
 
     private func positionPanelNearStatusItem(_ panel: NSPanel) {
