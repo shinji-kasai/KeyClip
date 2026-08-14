@@ -8,6 +8,9 @@
 
 /* Begin PBXFileReference section */
 		6440742C3026E6CD00828A67 /* KeyClip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KeyClip.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		177668FAF26F99F0F8354AE3 /* MediaRemoteAdapter.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaRemoteAdapter.framework; path = Vendor/MediaRemoteAdapter/MediaRemoteAdapter.framework; sourceTree = "<group>"; };
+		F42B0E80B5A231A162C1B967 /* mediaremote-adapter.pl */ = {isa = PBXFileReference; lastKnownFileType = text.script.perl; name = "mediaremote-adapter.pl"; path = "Vendor/MediaRemoteAdapter/mediaremote-adapter.pl"; sourceTree = "<group>"; };
+		8630FA186E9006611FD3EB94 /* MediaRemoteAdapter-LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; name = "MediaRemoteAdapter-LICENSE"; path = "Vendor/MediaRemoteAdapter/LICENSE"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -17,6 +20,12 @@
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXBuildFile section */
+		5AB3EC7CE6A463E0963A0BE8 /* MediaRemoteAdapter.framework in Copy Vendor Files */ = {isa = PBXBuildFile; fileRef = 177668FAF26F99F0F8354AE3 /* MediaRemoteAdapter.framework */; };
+		533E12B3320858FDE8EF19F6 /* mediaremote-adapter.pl in Copy Vendor Files */ = {isa = PBXBuildFile; fileRef = F42B0E80B5A231A162C1B967 /* mediaremote-adapter.pl */; };
+		E813DF9F0702D0B3AB9F064E /* MediaRemoteAdapter-LICENSE in Copy Vendor Files */ = {isa = PBXBuildFile; fileRef = 8630FA186E9006611FD3EB94 /* MediaRemoteAdapter-LICENSE */; };
+/* End PBXBuildFile section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		644074293026E6CD00828A67 /* Frameworks */ = {
@@ -28,13 +37,40 @@
 		};
 /* End PBXFrameworksBuildPhase section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		95E14336D789038E579363D4 /* Copy Vendor Files */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 7;
+			files = (
+				5AB3EC7CE6A463E0963A0BE8 /* MediaRemoteAdapter.framework in Copy Vendor Files */,
+				533E12B3320858FDE8EF19F6 /* mediaremote-adapter.pl in Copy Vendor Files */,
+				E813DF9F0702D0B3AB9F064E /* MediaRemoteAdapter-LICENSE in Copy Vendor Files */,
+			);
+			name = "Copy Vendor Files";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXGroup section */
 		644074233026E6CD00828A67 = {
 			isa = PBXGroup;
 			children = (
 				6440742E3026E6CD00828A67 /* KeyClip */,
+				71E3E6C0ED9DF536C534F84E /* Vendor */,
 				6440742D3026E6CD00828A67 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		71E3E6C0ED9DF536C534F84E /* Vendor */ = {
+			isa = PBXGroup;
+			children = (
+				177668FAF26F99F0F8354AE3 /* MediaRemoteAdapter.framework */,
+				F42B0E80B5A231A162C1B967 /* mediaremote-adapter.pl */,
+				8630FA186E9006611FD3EB94 /* MediaRemoteAdapter-LICENSE */,
+			);
+			name = Vendor;
 			sourceTree = "<group>";
 		};
 		6440742D3026E6CD00828A67 /* Products */ = {
@@ -55,6 +91,7 @@
 				644074283026E6CD00828A67 /* Sources */,
 				644074293026E6CD00828A67 /* Frameworks */,
 				6440742A3026E6CD00828A67 /* Resources */,
+				95E14336D789038E579363D4 /* Copy Vendor Files */,
 			);
 			buildRules = (
 			);

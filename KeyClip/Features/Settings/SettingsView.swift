@@ -12,6 +12,7 @@ struct SettingsView: View {
     @AppStorage(FeatureTab.clipboard.visibilityDefaultsKey) private var clipboardEnabled = true
     @AppStorage(FeatureTab.snippets.visibilityDefaultsKey) private var snippetsEnabled = true
     @AppStorage(FeatureTab.symbols.visibilityDefaultsKey) private var symbolsEnabled = true
+    @AppStorage(NowPlayingBar.enabledDefaultsKey) private var nowPlayingEnabled = true
 
     @AppStorage(FeatureTab.defaultTabDefaultsKey) private var defaultTab: FeatureTab = .clipboard
     @AppStorage(TextInjector.autoPasteDefaultsKey) private var autoPasteEnabled = true
@@ -31,6 +32,7 @@ struct SettingsView: View {
                 themedToggle("Clipboard", isOn: $clipboardEnabled)
                 themedToggle("Snippets", isOn: $snippetsEnabled)
                 themedToggle("Symbols", isOn: $symbolsEnabled)
+                themedToggle("Now Playing", isOn: $nowPlayingEnabled)
             } header: {
                 sectionHeader("Visible Tabs")
             }

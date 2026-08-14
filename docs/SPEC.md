@@ -140,6 +140,43 @@ but empty/greyed-out.
 
 (Developer and Keyboard branches removed — see §6/§7.)
 
+## 14. Now Playing
+
+A compact strip shown above the tab bar (`Features/Shared/NowPlayingBar.swift`)
+showing whatever's currently playing system-wide (Music, Spotify, a browser
+tab, etc.) — artwork, title, artist — with previous/play-pause/next controls.
+Collapses to nothing when no app is reporting a now-playing session, rather
+than showing an empty/disabled row. Has its own hide (×) button on the bar
+itself, backed by the same `NowPlayingBar.enabledDefaultsKey` `@AppStorage`
+flag as a "Now Playing" toggle in Settings → Visible Tabs — dismissing it
+from the bar and re-enabling it from Settings are the same switch.
+
+When the player reports a `duration`, the bar also shows a draggable
+progress scrubber with elapsed/total time labels, backed by the adapter's
+`seek POSITION` command (microseconds). The adapter only pushes an update
+when something actually changes, not once a second, so the live position
+between updates is extrapolated locally in `NowPlayingBar.currentElapsed`
+from the last known `elapsedTime` plus wall-clock time elapsed since it was
+received (via `TimelineView(.periodic(...))`), rather than polling `get`
+continuously.
+
+Backed by `Services/NowPlayingMonitor.swift`, which needs Apple's private
+`MediaRemote` framework — there is no public API for reading *another* app's
+now-playing state. Since macOS 15.4, `mediaremoted` denies MediaRemote
+access to any process whose bundle identifier doesn't start with
+`com.apple.`, so calling the framework directly (even via `dlopen`) from a
+regular app now returns nothing. `KeyClip/Vendor/MediaRemoteAdapter/`
+(BSD-3-Clause, vendored from github.com/ungive/mediaremote-adapter) works
+around this by shelling out to `/usr/bin/perl`, which macOS itself reports
+with bundle identifier `com.apple.perl5` and is therefore still entitled —
+the perl script dynamically loads the bundled helper framework (bundled
+with the app but never linked against) and streams now-playing JSON to
+stdout, which `NowPlayingMonitor` parses via `Process`/`Pipe`. Controls
+(`send <command-id>`) go through the same script. This is a documented,
+actively-maintained community workaround for a real platform regression,
+and it exposes only the same info the system's own Control Center "Now
+Playing" widget already shows — see the vendored `LICENSE` for attribution.
+
 ---
 
 ## Fixed constraints (decided with the user — do not re-litigate)
@@ -237,6 +274,8 @@ examples are preserved in §9 in case this is rebuilt. Recoverable from git
 history if the user asks for it again; do not proactively rebuild.
 
 ### Milestone 6 — Remaining shortcuts + polish (in progress)
+- [x] Now Playing bar above the tab bar (`Services/NowPlayingMonitor.swift`,
+      `Features/Shared/NowPlayingBar.swift`) — see §14.
 - [x] Double-⌘ (two quick Command-key taps, nothing else held) as an
       additional way to open the panel, alongside the existing ⌘⇧V hotkey —
       `Services/DoubleCommandTapDetector.swift`. Carbon's `RegisterEventHotKey`

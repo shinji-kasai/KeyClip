@@ -29,6 +29,7 @@ struct RootTabView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+            NowPlayingBar()
             tabBar
             Divider()
             content

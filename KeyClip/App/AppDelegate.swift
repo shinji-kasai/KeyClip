@@ -41,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupHotKey()
         setupDoubleCommandTap()
         SnippetExpansionEngine.shared.start(modelContext: modelContainer.mainContext)
+        NowPlayingMonitor.shared.start()
     }
 
     private func setupStatusItem() {
