@@ -81,7 +81,11 @@ struct SnippetsView: View {
     private var list: some View {
         ScrollViewReader { proxy in
             List {
-                Color.clear.frame(height: 0).id(topAnchorID)
+                Color.clear
+                    .frame(height: 0)
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+                    .id(topAnchorID)
                 ForEach(grouped, id: \.category) { group in
                     Section {
                         ForEach(group.items) { row(for: $0) }
@@ -92,6 +96,7 @@ struct SnippetsView: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            .contentMargins(.top, 0, for: .scrollContent)
             .background(theme.background)
             .onChange(of: tabSelection.openGeneration) { _, _ in
                 proxy.scrollTo(topAnchorID, anchor: .top)

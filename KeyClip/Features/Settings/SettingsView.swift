@@ -16,6 +16,7 @@ struct SettingsView: View {
 
     @AppStorage(FeatureTab.defaultTabDefaultsKey) private var defaultTab: FeatureTab = .clipboard
     @AppStorage(TextInjector.autoPasteDefaultsKey) private var autoPasteEnabled = true
+    @AppStorage(LaunchAtLoginService.enabledDefaultsKey) private var launchAtLoginEnabled = true
 
     @AppStorage(HotKeyBinding.openPanelDefaultsKey) private var openPanelBinding = HotKeyBinding.defaultOpenPanel
     @AppStorage(DoubleCommandTapDetector.enabledDefaultsKey) private var doubleCommandTapEnabled = true
@@ -54,6 +55,7 @@ struct SettingsView: View {
                     )
                 }
                 themedToggle("Auto-Paste on Select", isOn: $autoPasteEnabled)
+                themedToggle("Launch at Login", isOn: $launchAtLoginEnabled)
             } header: {
                 sectionHeader("Startup & Behavior")
             } footer: {
@@ -252,6 +254,9 @@ struct SettingsView: View {
             } else {
                 DoubleCommandTapDetector.shared.stop()
             }
+        }
+        .onChange(of: launchAtLoginEnabled) { _, newValue in
+            LaunchAtLoginService.setEnabled(newValue)
         }
         .onChange(of: clipboardEnabled) { _, _ in resetDefaultTabIfHidden() }
         .onChange(of: snippetsEnabled) { _, _ in resetDefaultTabIfHidden() }

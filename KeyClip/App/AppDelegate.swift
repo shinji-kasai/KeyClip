@@ -40,8 +40,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupClipboardMonitor()
         setupHotKey()
         setupDoubleCommandTap()
+        setupLaunchAtLogin()
         SnippetExpansionEngine.shared.start(modelContext: modelContainer.mainContext)
         NowPlayingMonitor.shared.start()
+    }
+
+    /// Syncs actual `SMAppService` registration to the stored preference on
+    /// every launch (default enabled) — cheap and idempotent, and also
+    /// self-heals if the registration drifted out of sync some other way
+    /// (e.g. the user removing it directly via System Settings → Login
+    /// Items rather than KeyClip's own toggle).
+    private func setupLaunchAtLogin() {
+        let enabled = UserDefaults.standard.object(forKey: LaunchAtLoginService.enabledDefaultsKey) as? Bool ?? true
+        LaunchAtLoginService.setEnabled(enabled)
     }
 
     private func setupStatusItem() {
