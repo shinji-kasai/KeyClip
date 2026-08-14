@@ -160,6 +160,14 @@ from the last known `elapsedTime` plus wall-clock time elapsed since it was
 received (via `TimelineView(.periodic(...))`), rather than polling `get`
 continuously.
 
+Clicking the artwork jumps to whatever app is actually playing it (Music,
+Spotify, a browser, etc.) via `NowPlayingMonitor.openSource()`, which
+activates the running app by the `bundleIdentifier` the adapter reports —
+same idea as clicking a Clipboard/Snippets row handing focus back to an
+app. No explicit panel-hide call is needed for this: activating another app
+makes `FloatingPanel` lose key status, and it already auto-hides itself on
+`resignKey()`.
+
 Backed by `Services/NowPlayingMonitor.swift`, which needs Apple's private
 `MediaRemote` framework — there is no public API for reading *another* app's
 now-playing state. Since macOS 15.4, `mediaremoted` denies MediaRemote

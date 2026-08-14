@@ -13,7 +13,8 @@ final class FloatingPanel: NSPanel {
     convenience init(
         modelContainer: ModelContainer,
         inject: @escaping (String) -> Void,
-        copyToClipboard: @escaping (String) -> Void
+        copyToClipboard: @escaping (String) -> Void,
+        hidePanel: @escaping () -> Void
     ) {
         self.init(
             contentRect: NSRect(x: 0, y: 0, width: 480, height: 600),
@@ -34,6 +35,7 @@ final class FloatingPanel: NSPanel {
             .modelContainer(modelContainer)
             .environment(\.injectText, inject)
             .environment(\.copyToClipboard, copyToClipboard)
+            .environment(\.hidePanel, hidePanel)
             .environmentObject(ThemeStore.shared)
             .environmentObject(TabSelectionStore.shared)
         contentView = NSHostingView(rootView: rootView)

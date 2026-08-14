@@ -61,6 +61,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             copyToClipboard: { [weak self] text in
                 self?.copyAndHide(text)
+            },
+            hidePanel: { [weak self] in
+                self?.panel?.hideUnlessPresentingSheet()
             }
         )
     }

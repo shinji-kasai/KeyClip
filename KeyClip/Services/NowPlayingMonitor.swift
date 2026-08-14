@@ -20,6 +20,7 @@ struct NowPlayingTrack: Equatable {
     /// (see `NowPlayingBar.currentElapsed`).
     let elapsedTime: TimeInterval?
     let elapsedCapturedAt: Date
+    let bundleIdentifier: String?
 }
 
 /// Reads and controls the system-wide "Now Playing" media session (Music,
@@ -96,6 +97,23 @@ final class NowPlayingMonitor: ObservableObject {
         try? task.run()
     }
 
+    /// Brings the app currently playing `track` to the front — clicking the
+    /// artwork jumps to whatever's actually playing it (Music, Spotify, a
+    /// browser tab's app, etc.), same way clicking a Clipboard/Snippets row
+    /// hands focus back to an app. Deliberately `NSWorkspace.openApplication`
+    /// rather than `NSRunningApplication.activate(options:)` — the latter is
+    /// unreliable called from a background/accessory (`LSUIElement`) process
+    /// like KeyClip: it can mark the target as "active" without actually
+    /// raising its windows, since it doesn't go through Launch Services as a
+    /// user-initiated open request. `openApplication` handles both the
+    /// already-running case (just raises it) and the rare race where the
+    /// source app quit between the last stream update and this click (relaunches it).
+    func openSource() {
+        guard let bundleIdentifier = track?.bundleIdentifier,
+              let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) else { return }
+        NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
+    }
+
     private func send(_ command: Command) {
         guard let script = Self.scriptURL, let framework = Self.frameworkURL else { return }
         let task = Process()
@@ -127,6 +145,7 @@ final class NowPlayingMonitor: ObservableObject {
         let artist = payload["artist"] as? String
         let duration = payload["duration"] as? Double
         let elapsedTime = payload["elapsedTime"] as? Double
+        let bundleIdentifier = payload["bundleIdentifier"] as? String
         var artwork: NSImage?
         if let base64 = payload["artworkData"] as? String, let data = Data(base64Encoded: base64) {
             artwork = NSImage(data: data)
@@ -138,7 +157,8 @@ final class NowPlayingMonitor: ObservableObject {
         }
         track = NowPlayingTrack(
             title: title, artist: artist, artwork: artwork, isPlaying: isPlaying,
-            duration: duration, elapsedTime: elapsedTime, elapsedCapturedAt: Date()
+            duration: duration, elapsedTime: elapsedTime, elapsedCapturedAt: Date(),
+            bundleIdentifier: bundleIdentifier
         )
     }
 

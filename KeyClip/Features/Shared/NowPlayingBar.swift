@@ -16,6 +16,7 @@ struct NowPlayingBar: View {
     @EnvironmentObject private var theme: ThemeStore
     @ObservedObject private var monitor = NowPlayingMonitor.shared
     @AppStorage(NowPlayingBar.enabledDefaultsKey) private var isEnabled = true
+    @Environment(\.hidePanel) private var hidePanel
 
     /// Set while the user is actively dragging the scrubber, so the slider
     /// tracks the drag instead of snapping back to the live-extrapolated
@@ -27,7 +28,15 @@ struct NowPlayingBar: View {
         if isEnabled, let track = monitor.track {
             VStack(spacing: 6) {
                 HStack(spacing: 10) {
-                    artwork(track)
+                    Button {
+                        hidePanel()
+                        monitor.openSource()
+                    } label: {
+                        artwork(track)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(track.bundleIdentifier == nil)
+                    .help("Jump to the app playing this")
                     VStack(alignment: .leading, spacing: 2) {
                         Text(track.title)
                             .font(.callout.weight(.medium))
