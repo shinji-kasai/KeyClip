@@ -8,6 +8,11 @@ import Foundation
 struct ReleaseInfo: Equatable {
     let version: String
     let url: URL
+    /// Direct download URL for the release's `.zip` asset, used by
+    /// `AppUpdateInstaller` to self-update. `nil` only if the release
+    /// somehow has no `.zip` asset attached (shouldn't happen with the
+    /// current CI, but "View Release" stays as a manual fallback either way).
+    let assetURL: URL?
 }
 
 enum UpdateCheckResult: Equatable {
@@ -17,9 +22,11 @@ enum UpdateCheckResult: Equatable {
 }
 
 /// Queries GitHub's Releases API for the latest published release and
-/// compares it to the running app's version — a manual/on-demand check, not
-/// an auto-updater. No signing keys or extra dependencies: this is
-/// unsandboxed, so plain `URLSession` needs no special entitlement either.
+/// compares it to the running app's version. Checking is still
+/// manual/on-demand (the user has to click "Check for Updates"), but once a
+/// newer release is found, `AppUpdateInstaller` can download and install it
+/// directly — see that file's doc comment for why this trusts the plain
+/// HTTPS download rather than adding Sparkle-style signature verification.
 enum UpdateChecker {
     private static let repo = "shinji-kasai/KeyClip"
 
@@ -39,9 +46,12 @@ enum UpdateChecker {
             let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
             let remoteVersion = release.tag_name.trimmingCharacters(in: CharacterSet(charactersIn: "v"))
             guard let releaseURL = URL(string: release.html_url) else { return .failed }
+            let assetURL = release.assets
+                .first { $0.name.hasSuffix(".zip") }
+                .flatMap { URL(string: $0.browser_download_url) }
 
             if isVersion(remoteVersion, newerThan: currentVersion()) {
-                return .updateAvailable(ReleaseInfo(version: remoteVersion, url: releaseURL))
+                return .updateAvailable(ReleaseInfo(version: remoteVersion, url: releaseURL, assetURL: assetURL))
             }
             return .upToDate
         } catch {
@@ -52,6 +62,12 @@ enum UpdateChecker {
     private struct GitHubRelease: Decodable {
         let tag_name: String
         let html_url: String
+        let assets: [Asset]
+
+        struct Asset: Decodable {
+            let name: String
+            let browser_download_url: String
+        }
     }
 
     private static func isVersion(_ lhs: String, newerThan rhs: String) -> Bool {

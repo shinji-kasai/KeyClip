@@ -131,16 +131,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case .updateAvailable(let info):
                 alert.messageText = "Update Available"
                 alert.informativeText = "KeyClip \(info.version) is available. You're on \(UpdateChecker.currentVersion())."
+                let updateButton = alert.addButton(withTitle: "Update & Relaunch")
+                updateButton.isEnabled = info.assetURL != nil
                 alert.addButton(withTitle: "View Release")
                 alert.addButton(withTitle: "Later")
-                if alert.runModal() == .alertFirstButtonReturn {
+                switch alert.runModal() {
+                case .alertFirstButtonReturn:
+                    if let assetURL = info.assetURL {
+                        installUpdate(from: assetURL)
+                    }
+                case .alertSecondButtonReturn:
                     NSWorkspace.shared.open(info.url)
+                default:
+                    break
                 }
             case .failed:
                 alert.messageText = "Couldn't Check for Updates"
                 alert.informativeText = "Check your internet connection and try again."
                 alert.addButton(withTitle: "OK")
                 alert.runModal()
+            }
+        }
+    }
+
+    /// Fire-and-forget: `AppUpdateInstaller` quits the app itself on
+    /// success, so there's nothing to update here in that case — only the
+    /// failure path needs a follow-up alert, since the original one has
+    /// already closed by the time this runs.
+    private func installUpdate(from assetURL: URL) {
+        Task { @MainActor in
+            do {
+                try await AppUpdateInstaller.installAndRelaunch(from: assetURL)
+            } catch {
+                let errorAlert = NSAlert()
+                errorAlert.messageText = "Update Failed"
+                errorAlert.informativeText = "Couldn't install the update automatically. Try \"View Release\" to install it manually."
+                errorAlert.addButton(withTitle: "OK")
+                errorAlert.runModal()
             }
         }
     }

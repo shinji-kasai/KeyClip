@@ -24,6 +24,8 @@ struct SettingsView: View {
     @State private var isInputMonitoringTrusted = InputMonitoringPermission.isTrusted
     @State private var updateCheckResult: UpdateCheckResult?
     @State private var isCheckingForUpdate = false
+    @State private var isInstallingUpdate = false
+    @State private var installUpdateError: String?
     @State private var isShowingClearHistoryConfirmation = false
 
     var body: some View {
@@ -140,6 +142,10 @@ struct SettingsView: View {
                 }
             } header: {
                 sectionHeader("Updates")
+            } footer: {
+                if let installUpdateError {
+                    Text(installUpdateError).foregroundStyle(.red)
+                }
             }
 
             Section {
@@ -251,8 +257,15 @@ struct SettingsView: View {
                 Text("Up to date").foregroundStyle(theme.text.opacity(0.6))
                 Button("Check Again") { checkForUpdate() }
             case .updateAvailable(let info):
-                Text("v\(info.version) available").foregroundStyle(.orange)
-                Button("View Release") { NSWorkspace.shared.open(info.url) }
+                if isInstallingUpdate {
+                    Text("Installing…").foregroundStyle(theme.text.opacity(0.6))
+                    ProgressView().controlSize(.small)
+                } else {
+                    Text("v\(info.version) available").foregroundStyle(.orange)
+                    Button("Update & Relaunch") { installUpdate(info) }
+                        .disabled(info.assetURL == nil)
+                    Button("View Release") { NSWorkspace.shared.open(info.url) }
+                }
             case .failed:
                 Text("Check failed").foregroundStyle(.red)
                 Button("Retry") { checkForUpdate() }
@@ -265,6 +278,23 @@ struct SettingsView: View {
         Task { @MainActor in
             updateCheckResult = await UpdateChecker.checkForUpdate()
             isCheckingForUpdate = false
+        }
+    }
+
+    /// Only returns on failure — `AppUpdateInstaller` quits the app itself
+    /// once the swap-and-relaunch is safely queued, so there's no "success"
+    /// state to show here.
+    private func installUpdate(_ info: ReleaseInfo) {
+        guard let assetURL = info.assetURL else { return }
+        isInstallingUpdate = true
+        installUpdateError = nil
+        Task { @MainActor in
+            do {
+                try await AppUpdateInstaller.installAndRelaunch(from: assetURL)
+            } catch {
+                isInstallingUpdate = false
+                installUpdateError = "Couldn't install the update automatically — try \"View Release\" instead."
+            }
         }
     }
 
